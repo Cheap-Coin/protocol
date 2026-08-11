@@ -14,10 +14,17 @@
     "test": "pnpm --filter @cheap/protocol test && pnpm --dir contracts test",
     "test:contracts": "pnpm --dir contracts test",
     "security:deps": "pnpm audit --audit-level high",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm --filter @cheap/protocol test:runtime"
+    "deployments:validate": "pnpm --filter @cheap/protocol build && node scripts/deployments.mjs validate",
+    "deployments:format": "pnpm --filter @cheap/protocol build && node scripts/deployments.mjs format",
+    "deployments:env": "pnpm --filter @cheap/protocol build && node scripts/deployments.mjs env",
+    "deployments:verify-chain": "pnpm --filter @cheap/protocol build && node scripts/deployments.mjs verify-chain",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm --filter @cheap/protocol test:runtime && node scripts/deployments.mjs validate"
   },
   "devDependencies": {
     "@openzeppelin/contracts": "5.6.1",
-    "typescript": "7.0.2"
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "typescript": "7.0.2",
+    "viem": "2.55.11"
   }
 }

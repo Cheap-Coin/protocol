@@ -23,6 +23,10 @@ The production-oriented pre-deployment foundation is implemented. It includes:
   approved reward token, while the primary CHEAP/COST market stays unfragmented.
 - A four-repository GitHub plan, disclosure policy, protected publication flow,
   pinned CI actions, dependency/secret scanning, and public deployment/audit slots.
+- A canonical deployment-manifest schema and strict cross-field validator with
+  exact-byte SHA-256 identity, versioned signed tags, finalized block anchors,
+  receipt/runtime/state verification, explicit proxy implementation checks, and
+  fail-closed app/services environment generation.
 - Immutable v3 drop evidence that binds every window to the exact published
   rules file and SHA-256 digest, with full drop/reconciliation CI test vectors.
 - Deterministic, capped community-contribution scoring, exact budget splitting,
@@ -42,13 +46,14 @@ The production-oriented pre-deployment foundation is implemented. It includes:
 ## Verified locally
 
 - Application `pnpm check`: passed lint, TypeScript, 9 unit tests, production
-  build, 34 browser/accessibility checks, and 8 intentionally gated live/visual
-  checks. The on-demand desktop/mobile visual audit also passed.
-- Services `pnpm check`: passed with 21 local tests; 4 real-PostgreSQL integration
-  cases are gated locally and configured to run against PostgreSQL 16 in CI.
+  build, and 36 desktop/mobile browser, interaction, live-mode, visual, and
+  accessibility checks; 10 environment-gated cases were skipped as designed.
+- Services `pnpm check`: passed with 38 local tests and runtime-import checks; 6
+  real-PostgreSQL integration cases are gated locally and configured to run
+  against PostgreSQL 16 in CI.
 - Transparency `pnpm check`: compiled and applied 3 JSON Schemas and reproduced
   one complete v3 drop fixture plus one linked reconciliation fixture.
-- Public deterministic logic: 25 Vitest cases passed, including 250 seeded
+- Public deterministic logic: 36 Vitest cases passed, including 250 seeded
   community-allocation invariant cases.
 - Foundry: 30 unit, fuzz, and invariant properties/tests passed. Each stateful
   property ran 16,384 calls with zero handler reverts.
@@ -80,10 +85,12 @@ The production-oriented pre-deployment foundation is implemented. It includes:
 6. Obtain independent Solidity and operational security reviews; resolve findings,
    rehearse pause/remediation procedures, and execute an end-to-end testnet dress
    rehearsal.
-7. Publish verified deployment addresses, signed reward artifacts, treasury
-   addresses, approved rules, and the launch reconciliation in the existing
-   repositories. Public branch protection is active; private protection remains
-   subject to the GitHub plan limitation documented above.
+7. Publish and independently reproduce the canonical deployment manifest, exact
+   SHA-256, signed release tag, finalized receipts, proxy/implementation identities,
+   contract state, treasury addresses, approved rules, reward artifacts, and
+   launch reconciliation. Generate app/services settings only from that release.
+   Public branch protection is active; private protection remains subject to the
+   GitHub plan limitation documented above.
 
 ## Deliberately outside V1
 

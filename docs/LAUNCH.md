@@ -84,6 +84,15 @@ reward layer rather than by fragmenting the initial CHEAP market.
 7. Switch the application to live mode only after RPC, API, explorer, artifact,
    and onchain state agree.
 
+## Canonical release gate
+
+Before any live-mode switch, publish the v1 deployment manifest described in
+[`../deployments/README.md`](../deployments/README.md). The release must be
+canonical JSON, anchored at a finalized block, independently reproduced, bound to
+the audited source commit, and contained in the matching annotated signed Git tag.
+Run both the signed-tag validator and the live-chain verifier. Generate the app
+and services public settings from that manifest; do not copy addresses by hand.
+
 ## Adding another RWA token
 
 1. Confirm the token is active in Robinhood's current asset registry.

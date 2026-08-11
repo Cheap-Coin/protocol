@@ -37,5 +37,7 @@ CI additionally runs pinned Slither, Aderyn, Trivy, and dependency checks. These
 tools do not replace an independent audit. Read `SECURITY.md` before reporting a
 vulnerability and `docs/LAUNCH.md` before any deployment.
 Use `docs/BANKR-SIMULATION.md` for the mandatory non-broadcast launch review.
+Use `deployments/README.md` for the canonical manifest, signed release, chain
+verification, and app/services environment-generation procedure.
 Use `docs/COMMUNITY-REWARDS.md` for the separate, currently inactive X and
 backworker scoring boundary.

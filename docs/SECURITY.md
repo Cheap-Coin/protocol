@@ -51,6 +51,13 @@ GitHub Actions are pinned to immutable commit SHAs and receive read-only default
 permissions. Dependabot proposes reviewed updates; no workflow follows an
 unpinned third-party action tag at runtime.
 
+Production addresses are accepted only through the canonical deployment-manifest
+pipeline. It checks exact JSON bytes, a disclosed signed Git tag, a finalized
+block/hash anchor, successful deployment receipts, current runtime-code hashes,
+token metadata, immutable constructor-derived state, configured pool/fee manager,
+and the 25/75 constants before it can emit live settings. The RPC URL remains a
+server-side operator secret and is redacted from verifier failures.
+
 ## Required work before mainnet value
 
 1. Independent audit of both contracts and the TypeScript/Solidity hashing match.

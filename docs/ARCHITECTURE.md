@@ -1,13 +1,13 @@
 # CheapCoin architecture
 
-Status: production foundation, pre-deployment. Last verified: 2026-08-10.
+Status: production foundation, pre-deployment. Last verified: 2026-08-11.
 
 ## System boundary
 
 ```mermaid
 flowchart LR
   T[Traders] --> P[Bankr/Doppler<br/>primary CHEAP-COST v4 pool]
-  P --> F[Doppler fee manager]
+  P -->|quote-only creator fees| F[Doppler fee manager]
   F --> S[CHEAP fee splitter]
   S -->|25% COST| C[Creator recipient]
   S -->|75% COST| H[Holder-reward Safe]
@@ -32,16 +32,22 @@ flowchart LR
   O -->|approved batch + proof| DR
 ```
 
-Bankr/Doppler owns the token launch, primary pool, creator-fee accrual, and fee
-collection. CheapCoin owns holder accounting, reward-asset registration,
-streaks, exclusions, published artifacts, batch execution, partner benefits,
-deal discovery, and the application.
+Bankr/Doppler owns the token launch, primary pool, and creator-fee accounting.
+The public `CheapFeeSplitter` is the single beneficiary of the CHEAP/COST pool
+and calls the verified pool fee manager directly. CheapCoin owns holder
+accounting, reward-asset registration, streaks, exclusions, published artifacts,
+batch execution, partner benefits, deal discovery, and the application.
+
+Canonical COST is an already-deployed quote asset. Its own deployment beneficiary
+is unrelated to the CHEAP/COST pool and is never configured or controlled by
+CheapCoin. Only the beneficiary for the new CHEAP launch is set to the splitter.
 
 ## Multi-RWA model
 
 A single Uniswap pool has one quote asset. The planned primary market remains
-CHEAP/COST so quote-only creator fees arrive in COST. Supporting additional RWA
-rewards does not require, and should not begin with, several CHEAP pools.
+CHEAP/COST with `quoteOnlyFees: true`, so the direct creator-fee share arrives in
+COST. Supporting additional RWA rewards does not require, and should not begin
+with, several CHEAP pools.
 
 Instead, each approved RWA token receives its own non-upgradeable distributor:
 
@@ -66,6 +72,8 @@ liquidity fragmentation and keeps each payout auditable.
 - Doppler fee manager and pool ID are configured once after launch verification.
 - Anyone may trigger collection; funds can reach only the immutable recipients.
 - The primary quote token cannot be swept as an unsupported token.
+- It intentionally does not route CHEAP. Community airdrops and scheduled burns
+  use a separately disclosed CHEAP vault allocation and Safe transaction flow.
 
 ### `CheapBatchDistributor`
 
@@ -82,9 +90,12 @@ liquidity fragmentation and keeps each payout auditable.
 ### CHEAP transfer indexer
 
 The indexer reads only the new Robinhood Chain CHEAP `Transfer` logs from its
-verified launch block. It uses finalized blocks by default. The cursor stores a
-block hash; a mismatch rebuilds raw history and marks unfinished work for
-remediation. No payout private key exists in the service.
+verified launch block. Before cursor creation it verifies chain ID 4663 and
+deployed code at the configured CHEAP address. It uses finalized blocks by
+default. The cursor stores its block hash, latest observed finalized target, and
+last check time. Readiness fails while backfilling or stale. A hash mismatch
+rebuilds raw history and marks unfinished work for remediation. No payout private
+key exists in the service.
 
 ### Holding windows
 
@@ -100,10 +111,24 @@ The builder uses bigint arithmetic and creates:
 1. a public per-wallet allocation commitment;
 2. a root of the exact execution batches approved by the Safe;
 3. the canonical reward-asset metadata and immutable distributor target;
-4. Safe and operator transaction objects for batches of at most 200 wallets.
+4. the exact published rules path and SHA-256 digest for the holding window;
+5. Safe and operator transaction objects for batches of at most 200 wallets.
+
+Production evidence uses the immutable v3 JSON Schema. Public CI applies that
+schema, independently recomputes allocations, roots, proofs, and calldata, and
+checks a linked reconciliation fixture before accepting live records.
 
 The same holding window may fund zero, one, or several asset-specific drops.
 Each drop has a unique ID and independent funding.
+
+### Community contribution scoring
+
+The public protocol package can score a pre-approved set of committed community
+events using versioned flat points and daily/round caps, allocate an explicitly
+funded community pool, and merge overlapping holder/contributor payouts. X OAuth,
+wallet-link verification, consent, source retrieval, anti-Sybil review, and
+appeals remain private service responsibilities. The holder-only v3 artifact is
+not changed; activation requires a new public schema and shadow round.
 
 ### Wallet application
 
@@ -119,7 +144,7 @@ from the read-only API. Preview content is never promoted to live state.
 | Primary creator fees | Doppler contracts | Bankr reads + RPC |
 | Canonical RWA identity | Robinhood asset registry + pinned address | Registry monitor + database |
 | CHEAP transfer history | CHEAP contract logs | Indexer/PostgreSQL |
-| Window rules and exclusions | Published rules | Database + artifact |
+| Window rules and exclusions | Exact published bytes and SHA-256 | Database + v3 artifact |
 | Allocation and batch roots | Deterministic artifact | Immutable storage + distributor |
 | Paid status | Asset-specific distributor | RPC/indexer |
 | Partner terms | Executed, published record | Application API |

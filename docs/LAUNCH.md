@@ -1,6 +1,8 @@
 # Production launch and operations checklist
 
 Owner-facing inputs are summarized in [OWNER-CHECKLIST.md](OWNER-CHECKLIST.md).
+The exact non-broadcast launch review is in
+[BANKR-SIMULATION.md](BANKR-SIMULATION.md).
 
 ## Confirmed decisions
 
@@ -10,7 +12,9 @@ Owner-facing inputs are summarized in [OWNER-CHECKLIST.md](OWNER-CHECKLIST.md).
 | Solana | Retired from all future utility; no migration or legacy allocation |
 | Product | CheapCoin covers anything worth getting for less, not groceries only |
 | Primary pair | Planned CHEAP/COST Bankr/Doppler launch |
-| Fee route | 25% creator, 75% holder-reward Safe |
+| Supply | Bankr standard fixed 100,000,000,000 CHEAP; no later minting |
+| Creator-fee asset | COST only (`quoteOnlyFees: true`, fixed at launch) |
+| COST fee route | 25% creator, 75% holder-reward Safe |
 | Additional RWAs | Separate immutable distributor per approved token |
 
 ## Owner inputs still required
@@ -19,7 +23,8 @@ Owner-facing inputs are summarized in [OWNER-CHECKLIST.md](OWNER-CHECKLIST.md).
 |---|---|
 | Shared wallets | Signers, approval threshold, and recovery process |
 | Creator recipient | Address receiving the immutable 25% primary-fee share |
-| CHEAP launch | Total supply, vault allocation, vesting, metadata, and funding |
+| CHEAP launch | Default 15% one-year vesting or no vesting; vault recipient and metadata |
+| CHEAP inventory | If vesting is enabled, published policy for unlocked airdrops and burns |
 | Reward rules | CHEAP floor, window length/start block, and V1 approval |
 | Drop policy | Minimum economical balance and target cadence |
 | Initial assets | COST only at launch, or named additional assets after testing |
@@ -38,16 +43,22 @@ Owner-facing inputs are summarized in [OWNER-CHECKLIST.md](OWNER-CHECKLIST.md).
 
 1. Deploy `CheapFeeSplitter` with canonical COST, creator recipient, holder Safe,
    and protocol-owner Safe.
-2. Simulate the Bankr/Doppler launch. Confirm chain 4663, canonical COST pairing,
-   quote-only fees, splitter beneficiary, supply, vault, and all returned addresses.
+2. Run a non-broadcast Bankr/Doppler simulation with chain 4663, canonical COST
+   as `pairedStock`, `quoteOnlyFees: true`, and the splitter as the CHEAP launch's
+   sole fee beneficiary. Confirm the fixed 100B supply, chosen vesting mode and
+   vault recipient, complete fee schedule, token ordering, pool ID, and exact
+   fee-manager target used by `collectFees(poolId)`.
 3. Have two people compare the simulation with the signed launch sheet.
 4. Submit and verify the token, pool, fee beneficiary, vault, source code, and
    launch receipt on Blockscout and Bankr.
 5. Deploy the COST `CheapBatchDistributor` with the limited operator and owner Safe.
-6. Configure the verified fee manager and pool ID into the splitter exactly once.
+6. Query Bankr's public fee endpoint and compare its fee-manager/pool targets with
+   the simulation and verified contracts. Configure them into the splitter once.
 7. Publish every address. Remove active Solana purchase and contract links.
 
-Do not rely on an undocumented deployment field without a successful simulation.
+Do not rely on a ticker or an undocumented deployment field without a successful
+simulation. Canonical COST's own token beneficiary is not part of this launch;
+only the CHEAP/COST pool's CHEAP beneficiary is configured.
 The primary pool accepts one quote asset; multi-RWA support is implemented in the
 reward layer rather than by fragmenting the initial CHEAP market.
 
@@ -56,6 +67,7 @@ reward layer rather than by fragmenting the initial CHEAP market.
 - Apply all PostgreSQL migrations and run against a production archive RPC.
 - Seed the COST reward asset and distributor in the public asset registry.
 - Reindex CHEAP from launch with two providers and compare balances.
+- Require `/health/ready` to report zero lag and a fresh finalized-chain check.
 - Run at least one full shadow window without a payout.
 - Independently reproduce holder scores, allocations, and both Merkle roots.
 
@@ -64,7 +76,8 @@ reward layer rather than by fragmenting the initial CHEAP market.
 1. Collect and split fees; reconcile the fee-manager event and both recipients.
 2. Close the first window after finality and create the holder snapshot.
 3. Fund only the COST distributor with the approved budget.
-4. Generate the asset-aware artifact and publish its immutable URI and hash.
+4. Generate the v3 asset-aware artifact, bind it to the exact rules path and
+   SHA-256 digest, and publish its immutable URI and hash.
 5. Verify token, distributor target, amount, roots, batches, and exclusions before
    the Safe signs `createDrop`.
 6. Execute approved batches, reconcile all balances/events, and finalize.
@@ -93,5 +106,6 @@ paused remediation path and is never silently rewritten.
 ## Go-live environment
 
 Populate `.env.example`, enable HTTPS enforcement, separate public and server
-secrets, restrict origins, verify `/api/status` and indexer `/health`, and make
-`NEXT_PUBLIC_APP_MODE=live` the final change.
+secrets, restrict origins, verify the application `/api/status`, require indexer
+`/health/ready` to report zero lag, and make `NEXT_PUBLIC_APP_MODE=live` the final
+change.

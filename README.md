@@ -5,10 +5,11 @@ Robinhood Chain. It contains the non-upgradeable fee splitter, isolated
 reward-token distributors, deterministic allocation and commitment logic,
 property tests, deployment records, rules, and security evidence.
 
-The planned primary market is one `CHEAP/COST` Bankr/Doppler pool. COST creator
-fees are split 25% to the creator beneficiary and 75% to the reward Safe. Other
-approved canonical RWA tokens use separately funded, immutable-token
-distributors; they do not create additional CHEAP launch pools.
+The planned primary market is one `CHEAP/COST` Bankr/Doppler pool with a fixed
+100B CHEAP supply and quote-only creator fees. COST creator fees are split 25%
+to the creator beneficiary and 75% to the reward Safe. Other approved canonical
+RWA tokens use separately funded, immutable-token distributors; they do not
+create additional CHEAP launch pools.
 
 ## Trust boundaries
 
@@ -35,3 +36,6 @@ pnpm check
 CI additionally runs pinned Slither, Aderyn, Trivy, and dependency checks. These
 tools do not replace an independent audit. Read `SECURITY.md` before reporting a
 vulnerability and `docs/LAUNCH.md` before any deployment.
+Use `docs/BANKR-SIMULATION.md` for the mandatory non-broadcast launch review.
+Use `docs/COMMUNITY-REWARDS.md` for the separate, currently inactive X and
+backworker scoring boundary.

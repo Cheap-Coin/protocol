@@ -125,10 +125,15 @@ jobs:
       - name: Prepare isolated analysis workspace
         run: pnpm --dir contracts prepare:analysis
 
+      - name: Compile isolated analysis workspace
+        working-directory: contracts/.analysis-workspace
+        run: forge build --build-info --force
+
       - name: Slither analysis
         uses: crytic/slither-action@b52cc1cbfee9ca3e8722dd5224299d16c9a6b80f # v0.4.2
         with:
           target: contracts/.analysis-workspace
           slither-version: 0.11.6
+          ignore-compile: true
           fail-on: high
           slither-args: --exclude-dependencies --filter-paths "lib"

@@ -122,6 +122,18 @@ jobs:
         with:
           version: v1.7.1
 
+      - name: Install Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Slither
+        run: |
+          python -m venv "$RUNNER_TEMP/slither"
+          "$RUNNER_TEMP/slither/bin/python" -m pip install \
+            --disable-pip-version-check \
+            slither-analyzer==0.11.6
+
       - name: Prepare isolated analysis workspace
         run: pnpm --dir contracts prepare:analysis
 
@@ -130,10 +142,10 @@ jobs:
         run: forge build --build-info --force
 
       - name: Slither analysis
-        uses: crytic/slither-action@b52cc1cbfee9ca3e8722dd5224299d16c9a6b80f # v0.4.2
-        with:
-          target: contracts/.analysis-workspace
-          slither-version: 0.11.6
-          ignore-compile: true
-          fail-on: high
-          slither-args: --exclude-dependencies --filter-paths "lib"
+        working-directory: contracts/.analysis-workspace
+        run: |
+          "$RUNNER_TEMP/slither/bin/slither" . \
+            --ignore-compile \
+            --fail-high \
+            --exclude-dependencies \
+            --filter-paths "lib"

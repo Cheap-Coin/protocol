@@ -1,0 +1,13 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+*.tsbuildinfo
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+contracts/aderyn-report.md
+contracts/.analysis-workspace/
+*.log
+.DS_Store
+Thumbs.db

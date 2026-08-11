@@ -1,0 +1,23 @@
+{
+  "name": "cheap-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter @cheap/protocol build && pnpm --dir contracts build",
+    "lint": "pnpm --filter @cheap/protocol lint && pnpm --dir contracts lint",
+    "typecheck": "pnpm --filter @cheap/protocol typecheck",
+    "test": "pnpm --filter @cheap/protocol test && pnpm --dir contracts test",
+    "test:contracts": "pnpm --dir contracts test",
+    "security:deps": "pnpm audit --audit-level high",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm --filter @cheap/protocol test:runtime"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "5.6.1",
+    "typescript": "6.0.3"
+  }
+}

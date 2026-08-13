@@ -96,14 +96,47 @@ describe("continuous holding window", () => {
     window.applyTransfer(alice, bob, 40n);
     window.applyTransfer(bob, alice, 20n);
 
-    expect(window.get(alice)).toMatchObject({ balance: 80n, minimumBalance: 60n });
-    expect(window.get(bob)).toMatchObject({ balance: 70n, minimumBalance: 50n });
+    expect(window.get(alice)).toMatchObject({
+      balance: 80n,
+      minimumBalance: 60n,
+      outboundTransfer: true,
+    });
+    expect(window.get(bob)).toMatchObject({
+      balance: 70n,
+      minimumBalance: 50n,
+      outboundTransfer: true,
+    });
   });
 
   it("keeps a new mid-window buyer at a zero minimum until the next window", () => {
     const window = new HoldingWindow(new Map([[alice, 100n]]));
     window.applyTransfer(alice, carol, 25n);
-    expect(window.get(carol)).toMatchObject({ balance: 25n, minimumBalance: 0n });
+    expect(window.get(carol)).toMatchObject({
+      balance: 25n,
+      minimumBalance: 0n,
+      outboundTransfer: false,
+    });
+  });
+
+  it("records any outbound transfer even when the wallet later restores its balance", () => {
+    const window = new HoldingWindow(new Map([[alice, 100n], [bob, 100n]]));
+    window.applyTransfer(alice, bob, 1n);
+    window.applyTransfer(bob, alice, 1n);
+    expect(window.get(alice)).toMatchObject({
+      balance: 100n,
+      minimumBalance: 99n,
+      outboundTransfer: true,
+    });
+  });
+
+  it("excludes a wallet with any outbound transfer from a strict Diamond allocation", () => {
+    const result = allocateHolderPool(100n, 50n, [
+      { address: alice, minimumBalance: 99n, streak: 3, outboundTransfer: true },
+      { address: bob, minimumBalance: 50n, streak: 1, outboundTransfer: false },
+    ]);
+    expect(result.allocations).toEqual([
+      expect.objectContaining({ address: bob, amount: 100n }),
+    ]);
   });
 
   it("rejects case-insensitive duplicate starting holders", () => {

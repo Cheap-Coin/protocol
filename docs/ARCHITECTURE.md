@@ -1,162 +1,153 @@
 # CheapCoin architecture
 
-Status: production foundation, pre-deployment. Last verified: 2026-08-11.
+Status: production foundation, pre-deployment. Last verified: 2026-08-12.
 
 ## System boundary
 
 ```mermaid
 flowchart LR
-  T[Traders] --> P[Bankr/Doppler<br/>primary CHEAP-COST v4 pool]
-  P -->|quote-only creator fees| F[Doppler fee manager]
-  F --> S[CHEAP fee splitter]
-  S -->|25% COST| C[Creator recipient]
-  S -->|75% COST| H[Holder-reward Safe]
+  T[Traders] --> P[Bankr/Doppler CHEAP-COST pool]
+  P -->|CHEAP + COST creator fees| F[Doppler fee manager]
+  F --> S[CHEAP dual-asset splitter]
+  S -->|25% of each asset| C[Creator recipient]
+  S -->|75% of each asset| H[Community Safe]
 
-  H -->|fund COST drop| DC[COST distributor]
-  X[Approved external funding<br/>or Safe-approved conversion] --> H
-  H -->|fund another RWA drop| DR[Asset-specific distributor]
-  DC --> U[Eligible holders]
-  DR --> U
+  H -->|fund CHEAP round| DS[CHEAP distributor]
+  H -->|fund COST round| DD[COST distributor]
+  DS -->|weighted-random| U[Surprise winners]
+  DD -->|strict holding| V[Diamond holders]
 
+  X[X API + reviewed evidence] --> SC[Social scoring]
   P -. CHEAP transfers .-> R[Archive RPC]
   R --> I[Finality-aware indexer]
   I --> DB[(PostgreSQL)]
-  DB --> A[Asset-aware artifact builder]
-  A -->|roots + exact target| H
+  SC --> DB
+  DB --> A[Artifact builder]
+  A -->|roots + exact calldata| H
   A --> API[Read-only API]
   API --> W[Wallet application]
   R --> W
-  H -->|createDrop via Safe| DC
-  H -->|createDrop via Safe| DR
-  O[Limited operator] -->|approved batch + proof| DC
-  O -->|approved batch + proof| DR
 ```
 
-Bankr/Doppler owns the token launch, primary pool, and creator-fee accounting.
-The public `CheapFeeSplitter` is the single beneficiary of the CHEAP/COST pool
-and calls the verified pool fee manager directly. CheapCoin owns holder
-accounting, reward-asset registration, streaks, exclusions, published artifacts,
-batch execution, partner benefits, deal discovery, and the application.
+Bankr/Doppler owns the launch, primary pool, and creator-fee accounting. The
+public `CheapFeeSplitter` is the sole CHEAP launch fee beneficiary and routes
+both pool assets. CheapCoin owns holder accounting, social evidence review,
+weighted selection, streaks, exclusions, artifacts, batch execution, partner
+benefits, and the wallet application.
 
-Canonical COST is an already-deployed quote asset. Its own deployment beneficiary
-is unrelated to the CHEAP/COST pool and is never configured or controlled by
-CheapCoin. Only the beneficiary for the new CHEAP launch is set to the splitter.
+Bankr is an optional transaction interface, not the Diamond Drop or Surprise
+Drop control plane. Recipient selection and exact amounts remain independently
+reproducible without Bankr.
 
-## Multi-RWA model
+## Two independent reward programs
 
-A single Uniswap pool has one quote asset. The planned primary market remains
-CHEAP/COST with `quoteOnlyFees: true`, so the direct creator-fee share arrives in
-COST. Supporting additional RWA rewards does not require, and should not begin
-with, several CHEAP pools.
+### COST Diamond Drops
 
-Instead, each approved RWA token receives its own non-upgradeable distributor:
+- Eligibility comes only from CHEAP transfer history.
+- The wallet must start at or above the fixed floor and make no outbound CHEAP
+  transfer during the hidden-end window.
+- Published duration bounds plus a future finalized Robinhood block select the
+  hidden end reproducibly after the longest possible window has elapsed.
+- Any outbound transfer disqualifies that window and resets the next streak.
+- Eligible weight is the window's minimum CHEAP balance times the streak multiplier.
+- Every eligible wallet receives its deterministic share of the funded COST budget.
+- Social activity never changes COST eligibility or payout weight.
 
-- the distributor's reward token is immutable;
-- its reserves, pause state, operator, commitments, and remediation are isolated;
-- every artifact names the reward token and exact distributor target;
-- the public registry must match Robinhood's current canonical token registry;
-- a token becoming inactive blocks new drops without affecting other assets.
+### CHEAP Surprise Drops
 
-Additional reward assets can be funded by an executed partner program, a direct
-treasury deposit, or a separately approved treasury conversion. COST creator
-fees are never represented as another asset until that conversion is completed
-and verified. One primary pool plus several isolated reward rails avoids
-liquidity fragmentation and keeps each payout auditable.
+- Eligibility requires both an approved social contribution minimum and the
+  published CHEAP holding floor.
+- Capped activity points times capped holding units create selection weight.
+- A future finalized block hash, committed before it is known, seeds weighted
+  sampling without replacement.
+- Winner count stays below eligible candidate count, so no wallet is guaranteed.
+- Selected wallets share only the fixed, pre-funded CHEAP budget.
+
+Pre-launch activity creates a Genesis record only. It may enter the first
+post-launch candidate calculation under pre-published rules once the wallet also
+holds CHEAP.
 
 ## Onchain components
 
 ### `CheapFeeSplitter`
 
-- Primary quote token, creator recipient, holder Safe, and 25/75 split are immutable.
-- The owner is a multisig Safe, not an application key.
-- Doppler fee manager and pool ID are configured once after launch verification.
-- Anyone may trigger collection; funds can reach only the immutable recipients.
-- The primary quote token cannot be swept as an unsupported token.
-- It intentionally does not route CHEAP. Community airdrops and scheduled burns
-  use a separately disclosed CHEAP vault allocation and Safe transaction flow.
+- Canonical COST, creator recipient, community Safe, and 25/75 split are immutable.
+- CHEAP token, Doppler fee manager, and pool ID are configured together once
+  after launch verification.
+- Anyone may collect and split; both CHEAP and COST can reach only the immutable
+  recipients.
+- Neither pool token can be swept. Unsupported-token recovery is disabled before
+  pool configuration.
+- The owner is a multisig Safe, never an application key.
 
 ### `CheapBatchDistributor`
 
-- One deployment holds one immutable, canonical reward token.
-- A distributor holds only pre-funded value reserved for its own drops.
-- The Safe commits the allocation root, exact batch root, amount, and batch count.
-- Any operator change to a recipient or amount fails Merkle proof verification.
-- Wallet and batch replay are prevented; reserved funds cannot be withdrawn.
+- One deployment holds one immutable token, so CHEAP and COST use separate instances.
+- The Safe commits the allocation root, batch root, amount, and batch count.
+- Any operator modification fails proof verification.
+- Recipient and batch replay are prevented; reserved funds cannot be withdrawn.
 - Partial failure uses the seven-day paused Safe remediation path.
-- Adding an RWA means deploying another instance, not upgrading an existing one.
 
 ## Offchain components
 
 ### CHEAP transfer indexer
 
-The indexer reads only the new Robinhood Chain CHEAP `Transfer` logs from its
-verified launch block. Before cursor creation it verifies chain ID 4663 and
-deployed code at the configured CHEAP address. It uses finalized blocks by
-default. The cursor stores its block hash, latest observed finalized target, and
-last check time. Readiness fails while backfilling or stale. A hash mismatch
-rebuilds raw history and marks unfinished work for remediation. No payout private
-key exists in the service.
+The indexer reads the new Robinhood Chain CHEAP `Transfer` logs from the verified
+launch block with finalized-block tracking and reorg detection. For every Diamond
+window it records the starting, minimum, and ending balance plus whether the
+wallet emitted any outbound transfer. New mid-window recipients start at a zero
+minimum and can first qualify in the following window.
 
-### Holding windows
+### Social evidence service
 
-The worker reconstructs the balance before each window and replays transfers in
-order. The lowest CHEAP balance, not the ending balance, is the payout base. A
-wallet first receiving CHEAP mid-window begins with a zero minimum and can
-qualify in the following window.
+The private service links an X account to a wallet through provider OAuth and a
+short-lived domain-bound wallet signature. It retains commitments, timestamps,
+consent evidence, and review results, not OAuth tokens or public usernames in the
+ledger. Likes, reposts, follows, replies, views, impressions, and passive Space
+listening are analytics-only. TikTok remains display/analytics-only until its
+applicable platform policy permits reward scoring.
 
-### Asset-aware artifacts
+### Public artifacts
 
-The builder uses bigint arithmetic and creates:
-
-1. a public per-wallet allocation commitment;
-2. a root of the exact execution batches approved by the Safe;
-3. the canonical reward-asset metadata and immutable distributor target;
-4. the exact published rules path and SHA-256 digest for the holding window;
-5. Safe and operator transaction objects for batches of at most 200 wallets.
-
-Production evidence uses the immutable v3 JSON Schema. Public CI applies that
-schema, independently recomputes allocations, roots, proofs, and calldata, and
-checks a linked reconciliation fixture before accepting live records.
-
-The same holding window may fund zero, one, or several asset-specific drops.
-Each drop has a unique ID and independent funding.
-
-### Community contribution scoring
-
-The public protocol package can score a pre-approved set of committed community
-events using versioned flat points and daily/round caps, allocate an explicitly
-funded community pool, and merge overlapping holder/contributor payouts. X OAuth,
-wallet-link verification, consent, source retrieval, anti-Sybil review, and
-appeals remain private service responsibilities. The holder-only v3 artifact is
-not changed; activation requires a new public schema and shadow round.
+Every funded distribution commits its exact rules bytes and digest, candidate or
+holder decisions, budget, reward token and distributor, allocation root, batch
+root, proofs, and calldata. Surprise artifacts additionally publish the frozen
+candidate commitment, precommitted future entropy block, finalized block hash,
+seed, weighted draws, and exact winners. No raw social identity data is public.
 
 ### Wallet application
 
-The application reads ETH, CHEAP, and registered RWA balances from Robinhood
-Chain. Eligibility, the reward-asset registry, and finalized drop history come
-from the read-only API. Preview content is never promoted to live state.
+The app reads ETH, CHEAP, and registered RWA balances from Robinhood Chain. It
+shows Diamond eligibility and Surprise odds as separate states, clearly labels
+preview data, and never asks for token approval merely to view records.
 
-## Data ownership
+## Multi-RWA model
+
+The primary pool has one quote asset: COST. Additional RWA rewards use separate
+immutable distributors funded through a disclosed partner deposit or Safe-approved
+conversion. They do not create extra CHEAP liquidity pools. Each asset is checked
+against the current canonical registry before a new campaign.
+
+## Data authority
 
 | Datum | Authority | Display source |
 |---|---|---|
 | CHEAP and RWA balances | Robinhood Chain | RPC / wallet client |
-| Primary creator fees | Doppler contracts | Bankr reads + RPC |
-| Canonical RWA identity | Robinhood asset registry + pinned address | Registry monitor + database |
-| CHEAP transfer history | CHEAP contract logs | Indexer/PostgreSQL |
-| Window rules and exclusions | Exact published bytes and SHA-256 | Database + v3 artifact |
-| Allocation and batch roots | Deterministic artifact | Immutable storage + distributor |
-| Paid status | Asset-specific distributor | RPC/indexer |
-| Partner terms | Executed, published record | Application API |
+| Creator fees | Doppler contracts | Bankr reads + RPC |
+| CHEAP holding history | CHEAP transfer logs | Indexer / PostgreSQL |
+| Social contribution evidence | Provider API + review commitments | Private service |
+| Rules, candidates, randomness, allocations | Versioned public artifact | Public ledger |
+| Payment state | Asset-specific distributor | RPC / indexer |
+| Partner benefits | Executed published terms | Application API |
 
-The database is never final payment authority. Artifact, distributor target,
-token balance, roots, events, and batch transactions must reconcile.
+The database is never final payment authority. Artifact, token, distributor,
+roots, events, and transaction receipts must reconcile.
 
 ## Deliberate V1 exclusions
 
 - No Solana migration or legacy allocation.
 - No upgradeable contracts or backend custody.
 - No automatic treasury swaps or autonomous asset selection.
-- No fragmented CHEAP liquidity pools for every reward asset.
+- No raw social engagement-count rewards.
 - No fabricated APY, guaranteed payout, or fixed drop schedule.
 - No staking emissions or LP attribution until separately funded and audited.

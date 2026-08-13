@@ -18,6 +18,7 @@ export class HoldingWindow {
         address,
         balance,
         minimumBalance: balance,
+        outboundTransfer: false,
       });
     }
   }
@@ -32,6 +33,7 @@ export class HoldingWindow {
         throw new RangeError(`Transfer exceeds tracked balance for ${from}`);
       }
       sender.balance -= amount;
+      sender.outboundTransfer = true;
       sender.minimumBalance =
         sender.balance < sender.minimumBalance
           ? sender.balance
@@ -52,7 +54,9 @@ export class HoldingWindow {
 
   get(address: Address): Readonly<TrackedHolder> {
     const holder = this.#holders.get(key(address));
-    return holder ? { ...holder } : { address, balance: 0n, minimumBalance: 0n };
+    return holder
+      ? { ...holder }
+      : { address, balance: 0n, minimumBalance: 0n, outboundTransfer: false };
   }
 
   snapshot(): ReadonlyArray<Readonly<TrackedHolder>> {
@@ -66,7 +70,12 @@ export class HoldingWindow {
     const existing = this.#holders.get(normalized);
     if (existing) return existing;
 
-    const created = { address, balance: 0n, minimumBalance: 0n };
+    const created = {
+      address,
+      balance: 0n,
+      minimumBalance: 0n,
+      outboundTransfer: false,
+    };
     this.#holders.set(normalized, created);
     return created;
   }

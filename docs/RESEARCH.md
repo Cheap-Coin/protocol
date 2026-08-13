@@ -7,8 +7,8 @@ Robinhood Chain transactions.
 
 - Bankr's launch API deploys on Robinhood Chain by default and returns the token,
   Uniswap v4 pool ID, fee manager/beneficiary distribution, and transaction.
-- `quoteOnlyFees: true` fixes creator fees in the quote asset at launch. It cannot
-  be retrofitted later.
+- Bankr's standard launch mode pays creator fees in both pool assets. Setting
+  `quoteOnlyFees: true` changes that to quote-only and cannot be retrofitted.
 - Bankr currently documents a 0.7% pool swap fee with 95%—0.665% of trading
   volume—assigned to the creator beneficiary. Other hook and LP fee legs are
   separate; 0.665% is not the pool's total trading fee.
@@ -42,10 +42,12 @@ engine therefore exist outside the visible Bankr app.
 Onchain, the GME treasury first used a generic transfer helper and later called a
 small custom `disperseToken(address,address[],uint256[])` contract. That confirms
 the stock distribution layer is separate from the GME memecoin and Doppler pool.
-Bankr subsequently confirmed directly that it can initialize standard Merkle or
-batch distributors and execute distribution/burn payloads, but does not calculate
-holder streaks, X activity, wallet links, allocations, or anti-Sybil decisions.
-CHEAP must supply the validated recipients and exact amounts.
+Bankr can submit arbitrary EVM transactions from a connected wallet, including
+project-supplied distribution or burn calldata. It does not provide a documented
+third-party campaign factory, background operator, custom gas-sponsorship layer,
+holder-streak engine, X activity indexer, wallet-link database, allocation engine,
+or anti-Sybil service. CHEAP must supply and verify the recipients, amounts, and
+exact transaction payloads.
 
 CHEAP reuses the sound concepts—fee-funded stock-token drops, lowest-balance
 windows, streaks, batch transfers, and a public ledger—while improving the trust
@@ -85,10 +87,10 @@ Primary references:
 ## Decision for CHEAP
 
 Use Bankr/Doppler for the launch and CHEAP/COST market. Use CHEAP-owned, audited
-scoring and artifact infrastructure for Diamond Drops and partner benefits. Bankr
-may execute a drop through an exact reviewed distributor instance. Set quote-only
-fees and the splitter beneficiary at launch, verify the actual response, and never
-infer production addresses from a ticker symbol alone.
+scoring and artifact infrastructure for Diamond and Surprise Drops. Bankr may
+execute exact reviewed distributor calldata. Select standard two-asset fees and
+the splitter beneficiary at launch, verify the raw simulation, and never infer
+production addresses from a ticker symbol alone.
 
 ## Direct Bankr configuration confirmation: 2026-08-10
 
@@ -103,14 +105,25 @@ beneficiaries is true but easy to misapply. Canonical COST already exists, and
 CheapCoin neither deploys it nor changes its beneficiary. The new CHEAP/COST pool
 has one CHEAP launch beneficiary. With default mixed fees, live GME data and
 Bankr's public API show that beneficiary accounting can contain both pool assets.
-CHEAP instead selects `quoteOnlyFees: true`, so the direct creator share is paid
-only in COST and the existing immutable 25/75 COST splitter remains sufficient.
+CHEAP selects standard mixed fees so the beneficiary receives the CHEAP and COST
+pool assets. The dual-asset splitter applies 25/75 independently: the community
+CHEAP leg can fund Surprise Drops and the COST leg can fund Diamond Drops. ETH is
+the gas token, not an assumed creator-fee reward.
 
-Bankr also confirmed that distributor behavior is instance-specific: claim-for,
-root mutability, expiration, and clawback are chosen during setup. No production
-campaign is funded until Bankr supplies the exact Robinhood Chain implementation,
-verified source, audit material, initialization values, and unsigned Safe payload
-for review. "Supplied upon initialization" is not treated as pre-approval.
+## Direct Bankr distribution clarification: 2026-08-11
+
+Bankr confirmed that it has no published contract/factory addresses, source,
+audits, payload schema, or dedicated operator service for a CHEAP-style custom
+batch or Merkle campaign on Robinhood Chain. Its applicable capability is raw EVM
+transaction execution (`to`, `value`, `data`) from the connected wallet. Standard
+third-party social or club distributions require the project to supply the final
+recipient list and amounts.
+
+Earlier conversational descriptions of Bankr initializing audited Merkle
+campaigns or running scheduled distributions are therefore not accepted as a
+production interface. CHEAP deploys and audits its own distributor, creates the
+complete calldata, and retains a replaceable limited operator. Bankr may be used
+manually by that operator, but the protocol remains executable without Bankr.
 
 ## Multi-RWA update: 2026-08-10
 

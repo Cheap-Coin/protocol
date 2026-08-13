@@ -69,7 +69,7 @@ function validManifest(): DeploymentManifestV1 {
     publication: {
       publishedAt: "2026-08-11T20:00:00Z",
       releaseSequence: 1,
-      sourceRepository: "https://github.com/Cheap-Coin/cheap-protocol",
+      sourceRepository: "https://github.com/Cheap-Coin/protocol",
       sourceCommit: "1234567890abcdef1234567890abcdef12345678",
       signedTag: "deployment/robinhood-mainnet-v1/v1",
       manifestPath: "deployments/robinhood-mainnet-v1.manifest.json",
@@ -97,7 +97,7 @@ function validManifest(): DeploymentManifestV1 {
         initializationBlock: "101",
         initializationBlockHash: testHash("a2"),
         tokenIsToken0: true,
-        quoteOnlyCreatorFees: true,
+        creatorFeeAssets: "both_pool_assets",
         swapFeePips: 10_000,
         creatorFeePips: 6_650,
       },
@@ -127,9 +127,9 @@ function validManifest(): DeploymentManifestV1 {
         compiler,
       },
       feeSplitterConstructorArguments: {
-        rewardToken: CANONICAL_COST_ADDRESS,
+        quoteToken: CANONICAL_COST_ADDRESS,
         creatorRecipient: creator,
-        holderTreasury: holderSafe,
+        communityTreasury: holderSafe,
         initialOwner: ownerSafe,
       },
       rewardDistributors: [
@@ -208,8 +208,8 @@ describe("deployment manifest", () => {
 
   it("rejects mismatched immutable constructor arguments", () => {
     const manifest = validManifest();
-    manifest.contracts.feeSplitterConstructorArguments.holderTreasury = testAddress(909);
-    expect(() => validateDeploymentManifest(manifest)).toThrow("holder treasury Safe");
+    manifest.contracts.feeSplitterConstructorArguments.communityTreasury = testAddress(909);
+    expect(() => validateDeploymentManifest(manifest)).toThrow("community treasury Safe");
   });
 
   it("accepts only the exact 15% linear vesting allocation and ordered dates", () => {

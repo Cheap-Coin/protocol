@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Cheap-Coin/cheap-protocol/main/deployments/deployment-manifest-v1.schema.json",
+  "$id": "https://raw.githubusercontent.com/Cheap-Coin/protocol/main/deployments/deployment-manifest-v1.schema.json",
   "title": "CheapCoin Robinhood Chain deployment manifest v1",
   "description": "Public, machine-readable identity and configuration for one CheapCoin production deployment. Cross-field address, supply, and release-tag invariants are additionally enforced by @cheap/protocol.",
   "type": "object",
@@ -70,7 +70,7 @@
           "maximum": 999999
         },
         "sourceRepository": {
-          "const": "https://github.com/Cheap-Coin/cheap-protocol"
+          "const": "https://github.com/Cheap-Coin/protocol"
         },
         "sourceCommit": {
           "type": "string",
@@ -115,7 +115,7 @@
             "initializationBlock",
             "initializationBlockHash",
             "tokenIsToken0",
-            "quoteOnlyCreatorFees",
+            "creatorFeeAssets",
             "swapFeePips",
             "creatorFeePips"
           ],
@@ -125,7 +125,7 @@
             "initializationBlock": { "$ref": "#/$defs/positiveDecimal" },
             "initializationBlockHash": { "$ref": "#/$defs/hash32" },
             "tokenIsToken0": { "type": "boolean" },
-            "quoteOnlyCreatorFees": { "const": true },
+            "creatorFeeAssets": { "const": "both_pool_assets" },
             "swapFeePips": {
               "type": "integer",
               "minimum": 1,
@@ -172,15 +172,15 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "rewardToken",
+            "quoteToken",
             "creatorRecipient",
-            "holderTreasury",
+            "communityTreasury",
             "initialOwner"
           ],
           "properties": {
-            "rewardToken": { "$ref": "#/$defs/address" },
+            "quoteToken": { "$ref": "#/$defs/address" },
             "creatorRecipient": { "$ref": "#/$defs/address" },
-            "holderTreasury": { "$ref": "#/$defs/address" },
+            "communityTreasury": { "$ref": "#/$defs/address" },
             "initialOwner": { "$ref": "#/$defs/address" }
           }
         },

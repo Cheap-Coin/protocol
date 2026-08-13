@@ -56,6 +56,7 @@ export function allocateHolderPool(
       const multiplierBps = streakMultiplierBps(holder.streak);
       const eligible =
         !holder.excluded &&
+        !holder.outboundTransfer &&
         holder.minimumBalance >= floorTokenAmount &&
         multiplierBps > 0n;
       const weight = eligible

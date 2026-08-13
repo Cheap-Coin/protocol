@@ -7,15 +7,21 @@ exclusions, and first funded reward budget before activation.
 ## Eligibility
 
 - A window is a published inclusive pair of Robinhood Chain block numbers.
+- Before a window starts, the project publishes its start, minimum and maximum
+  duration, selection ID, and one future Robinhood entropy block after the maximum
+  possible end. Once that block finalizes, its hash selects the end inside those
+  bounds deterministically; the team cannot choose an end after seeing transfers.
 - Eligibility uses a fixed CHEAP-token floor, not a floating USD floor.
 - A wallet's minimum CHEAP balance over the entire window is its payout base.
+- Any outbound CHEAP transfer during the window makes that wallet ineligible for
+  that window, even if the balance is later restored. Onchain logs cannot prove
+  whether an outbound transfer was a sale, wallet move, or payment.
 - A wallet first acquiring CHEAP during a window starts with a zero minimum and
   can qualify in the next window.
-- Falling below the floor makes the wallet ineligible for that window and resets
-  its next streak to zero.
+- Any outbound transfer or failure to hold the floor resets the next streak to zero.
 - The first Robinhood Chain window starts every wallet at streak zero. Solana
   balances and history never enter the calculation.
-- A window closes only after its end block reaches the selected finality level.
+- A window closes only after the selected end and entropy blocks reach finality.
 
 The interface currently illustrates a 5,000 CHEAP floor and seven-day windows.
 Those figures remain preview values until the new supply is approved.
@@ -48,8 +54,9 @@ public reason and effective block range.
 
 ## Reward assets and budgets
 
-- COST is the planned primary quote asset. The splitter routes 75% of collected
-  COST creator fees to the holder Safe and 25% to the creator recipient.
+- COST is the planned primary quote asset. With Bankr's standard two-asset fee
+  mode, the splitter routes 75% of collected COST to the community Safe and 25%
+  to the creator recipient.
 - A Diamond Drop may use COST or another approved canonical Robinhood RWA token.
 - Each reward asset has a separate immutable distributor deployment.
 - Each drop names exactly one token address, symbol, decimals value, distributor,
@@ -59,6 +66,8 @@ public reason and effective block range.
 - Additional assets require Safe approval and a current canonical-registry check.
 - Timing and size depend on funded balances. No amount, asset, frequency, or
   market value is guaranteed.
+- A drop budget is approved from already collected COST. Undistributed treasury
+  reserves remain available for future windows; no drop assumes future fees.
 - Rule changes apply only to future windows under a new rules hash.
 
 ## Partner benefits

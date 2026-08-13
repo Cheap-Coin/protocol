@@ -1,106 +1,108 @@
-# Community contribution rewards
+# Community Surprise Drops
 
-Status: deterministic foundation implemented; live X ingestion and payouts are
-not active.
+Status: deterministic weighted selection and social evidence validation are
+implemented. Live provider OAuth, API collection, and funded drops are inactive
+until credentials, consent, review, appeal, and randomness rehearsals pass.
 
-Bankr can execute supplied distribution payloads, but it does not determine who
-controls an X account, link that identity to a wallet, score activity, or decide
-whether an account is abusive. CheapCoin must own and disclose those decisions.
+Bankr can submit project-supplied raw distribution transactions from a connected
+operator wallet. It does not link social identities to wallets, calculate CHEAP
+eligibility, review abuse, select winners, or operate a background CHEAP service.
 
-## Product boundary
+## Separate from Diamond Drops
 
-Normal Diamond Drop eligibility remains based on continuous CHEAP holdings. A
-community contribution round is a separate optional source of allocations. It
-must never silently reduce a holder-funded pool after a window begins.
+CheapCoin has two independent community reward programs:
 
-The recommended funding order is:
+1. **COST Diamond Drops** use only CHEAP holding history. Every qualifying wallet
+   shares a funded COST budget deterministically. Social activity is irrelevant.
+2. **CHEAP Surprise Drops** use a weighted-random drawing among approved social
+   contributors who also meet the published CHEAP holding floor. Qualification
+   never guarantees selection.
 
-1. use a separately approved community or partner budget; or
-2. publish an exact community basis-point share before the round starts.
+The programs publish separate rules, candidate commitments, budgets, artifacts,
+and ledger entries. A social decision cannot reduce or disqualify a wallet's COST
+Diamond Drop.
 
-A wallet may receive both a holder allocation and a community allocation. The
-two positive amounts are merged by address before the final batch commitment,
-so a wallet is paid once per asset-specific drop.
+## Pre-launch Genesis record
 
-## Deterministic scoring boundary
+There is no Robinhood Chain CHEAP balance before launch. Opted-in, verified
+pre-launch contributions can therefore create only a Genesis activity record.
+Those points may be carried into the first post-launch Surprise round only under
+rules published before that round. The wallet must then meet its CHEAP holding
+floor. A Genesis record alone creates no token entitlement and promises no amount.
 
-The public TypeScript module accepts only already-approved event commitments.
-It does not call X or trust raw engagement counts. For each round it requires:
+## Post-launch weighted drawing
 
-- inclusive start and end Unix timestamps;
-- versioned action names and positive point values;
-- per-action UTC-day and full-round caps;
-- unique 32-byte event commitments;
-- canonical reward wallet addresses; and
-- a versioned set of excluded project or abusive wallets.
+Each Surprise round publishes before collection closes:
 
-Events are sorted by time and commitment before caps are applied. The earliest
-eligible event wins when a cap is reached. Unknown actions, duplicate events,
-invalid addresses, malformed commitments, and out-of-round timestamps stop the
-calculation instead of being silently ignored.
+- its CHEAP budget and maximum winner count;
+- the minimum CHEAP balance, holding unit, and capped holding units;
+- accepted actions, points, daily/round caps, minimum points, and point cap;
+- exclusions, review deadline, appeal process, and evidence policy;
+- a future entropy chain and block chosen before that block is known.
 
-The output includes accepted events, rejected events with deterministic reasons,
-per-wallet points, total points, exact reward allocations, and undistributed
-amount. Integer division dust uses largest remainder and lowercase address order.
+An eligible wallet's selection weight is:
 
-## Live identity and event verification
+`capped activity points x capped CHEAP holding units`
 
-A future private ingestion service must verify both sides of a link:
+Winners are sampled without replacement. More approved work and more CHEAP held
+increase the chance of selection, but both inputs are capped and no eligible
+wallet is guaranteed to win. The configured winner count must be smaller than the
+eligible candidate count. Once selected, a winner's share of the fixed CHEAP
+budget is proportional to its selection weight. Exact integer dust is assigned
+deterministically.
 
-1. X OAuth proves control of the provider user ID.
-2. A short-lived, domain-bound wallet challenge proves control of the EVM wallet.
-3. The user explicitly consents to the link and stated public-disclosure policy.
-4. Nonces are one-time, expire quickly, and cannot be replayed across domains or
-   chains.
+The complete candidate set is frozen first. Its commitment and the future entropy
+block are published before the entropy exists. After the block is finalized, the
+seed and every draw can be reproduced. An operator may not choose among several
+block hashes after seeing the outcome.
 
-The ingestion service should store provider IDs, event IDs, timestamps, rule
-versions, review status, and commitments, not copies of post text or unnecessary
-profile data. OAuth tokens remain encrypted service secrets and never enter a
-drop artifact or public repository.
+## Supported social evidence
 
-## Action policy
+Every account is linked with provider OAuth plus a short-lived, domain-bound
+wallet signature and explicit consent. The production scoring allowlist is
+deliberately narrow:
 
-Use flat, capped actions tied to official campaigns. Do not score follower count,
-impressions, likes received, token price promotion, repeated identical replies,
-or unverifiable screenshots. Those signals are easy to buy or manipulate and
-reward spam rather than useful work.
+- original X posts, substantive quote posts, and educational threads;
+- hosting or speaking in an approved X Space while verifiable records exist.
 
-Possible actions are examples until owner approval:
+Likes, reposts, follows, replies/comments, views, impressions, follower counts,
+and passive Space listening are analytics-only. They never create points. TikTok
+account linking and own-video display may be implemented, but TikTok activity is
+not reward-scored until its applicable platform rules and API access permit it.
+Scraping is not an accepted fallback.
 
-- an original educational CheapCoin post;
-- a substantive quote or reply on an allowlisted campaign;
-- hosting or speaking in an approved community Space;
-- a verified deal submission; or
-- documented moderation or project work.
+Qualifying promotional content must carry the project-approved disclosure and
+evidence required by the campaign terms. The project is not claiming an X
+partnership; this is a disclosure and platform-policy control for incentivized
+content.
 
-Weights, caps, campaign IDs, excluded wallets, funding, start time, end time, and
-appeal deadline must be published before scoring. Rule changes apply only to a
-future round.
+## Privacy and review
 
-## Anti-Sybil and review
-
-No automated score proves a person is unique. Deterministic flags can identify
-duplicate provider IDs, duplicate wallets, replayed event IDs, link changes,
-burst activity, and shared funding patterns, but an approved reviewer makes the
-final inclusion decision under published rules. Reviewers must record a reason,
-support an appeal window, and never alter a finalized artifact.
-
-One provider account and one primary reward wallet per round is the conservative
-default. Wallet changes should have a cooldown and take effect in a future round.
-Team, treasury, pool, router, distributor, bot, and campaign-control accounts are
-excluded unless a separately disclosed grant policy names them.
+The private service stores keyed provider/event commitments, timestamps, consent
+evidence, review state, and score records. It does not publish usernames, post
+text, raw provider IDs, OAuth tokens, raw signatures, or rejected identity links.
+One account per provider and one reward wallet per round is the conservative
+default. Reviewers check replay, copied content, automation, coordinated abuse,
+excluded project accounts, and campaign-specific evidence. Every rejection has
+a reason and appeal path; finalized artifacts are never edited.
 
 ## Activation gates
 
-Community rewards remain inactive until all of the following are complete:
+Before a funded Surprise Drop:
 
-- owner-approved funding source, budget share, actions, weights, and caps;
-- reviewed X developer access and OAuth/data-retention terms;
-- wallet-link challenge implementation and security tests;
-- anti-Sybil review and appeal procedures;
-- a new public artifact schema that commits contribution inputs and both pools;
-- deterministic fixtures and independent reproduction; and
-- one unfunded shadow round followed by a low-value rehearsal.
+- publish owner-approved actions, caps, dates, budget, winner count, holding
+  parameters, exclusions, disclosure, and appeal terms;
+- confirm X developer access, consent, retention, revocation, and deletion flows;
+- complete wallet-link, CSRF/state, PKCE, replay, and substitution tests;
+- freeze and publish the candidate commitment before the entropy block;
+- run one unfunded shadow round and one low-value rehearsal;
+- publish the full candidate decisions, entropy proof, winners, allocations,
+  Merkle roots, and execution calldata without publishing private social data.
 
-The existing v3 Diamond Drop format remains holder-only. Adding community inputs
-will use a new schema version rather than rewriting v3 evidence.
+## Primary references
+
+- [X promotion guidelines](https://help.x.com/en/rules-and-policies/x-contest-rules)
+- [X authenticity policy](https://help.x.com/en/rules-and-policies/authenticity)
+- [X paid-partnership policy](https://help.x.com/en/rules-and-policies/paid-partnerships-policy)
+- [X developer guidelines](https://docs.x.com/developer-guidelines)
+- [FTC social-media disclosure guidance](https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers)

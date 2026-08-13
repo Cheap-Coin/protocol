@@ -8,77 +8,94 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockFeeManager} from "./mocks/MockFeeManager.sol";
 
 contract CheapFeeSplitterTest is Test {
-    MockERC20 internal rewardToken;
+    MockERC20 internal cheap;
+    MockERC20 internal cost;
     MockFeeManager internal feeManager;
     CheapFeeSplitter internal splitter;
 
     address internal creator = makeAddr("creator");
-    address internal holderTreasury = makeAddr("holderTreasury");
+    address internal communityTreasury = makeAddr("communityTreasury");
     address internal owner = makeAddr("ownerSafe");
     bytes32 internal poolId = keccak256("CHEAP-COST");
 
     function setUp() public {
-        rewardToken = new MockERC20();
-        feeManager = new MockFeeManager(IERC20(address(rewardToken)));
-        splitter = new CheapFeeSplitter(IERC20(address(rewardToken)), creator, holderTreasury, owner);
-        rewardToken.mint(address(feeManager), 10_000 ether);
+        cheap = new MockERC20();
+        cost = new MockERC20();
+        feeManager = new MockFeeManager(IERC20(address(cheap)), IERC20(address(cost)));
+        splitter = new CheapFeeSplitter(IERC20(address(cost)), creator, communityTreasury, owner);
+        cheap.mint(address(feeManager), 10_000 ether);
+        cost.mint(address(feeManager), 10_000 ether);
 
         vm.prank(owner);
-        splitter.configurePool(address(feeManager), poolId);
+        splitter.configurePool(address(feeManager), poolId, IERC20(address(cheap)));
     }
 
-    function testCollectAndSplitRoutesExactShares() public {
-        feeManager.setPayout(1_001 ether);
+    function testCollectAndSplitRoutesBothPoolAssets() public {
+        feeManager.setPayout(1_001 ether, 2_002 ether);
         splitter.collectAndSplit();
 
-        assertEq(rewardToken.balanceOf(creator), 250.25 ether);
-        assertEq(rewardToken.balanceOf(holderTreasury), 750.75 ether);
-        assertEq(rewardToken.balanceOf(address(splitter)), 0);
+        assertEq(cheap.balanceOf(creator), 250.25 ether);
+        assertEq(cheap.balanceOf(communityTreasury), 750.75 ether);
+        assertEq(cost.balanceOf(creator), 500.5 ether);
+        assertEq(cost.balanceOf(communityTreasury), 1_501.5 ether);
+        assertEq(cheap.balanceOf(address(splitter)), 0);
+        assertEq(cost.balanceOf(address(splitter)), 0);
     }
 
-    function testCollectionAlsoRoutesAnyPreviouslyTransferredBalance() public {
-        rewardToken.mint(address(splitter), 99 ether);
-        feeManager.setPayout(1 ether);
+    function testCollectionRoutesExistingAndNewBalances() public {
+        cheap.mint(address(splitter), 99 ether);
+        cost.mint(address(splitter), 199 ether);
+        feeManager.setPayout(1 ether, 1 ether);
 
         splitter.collectAndSplit();
 
-        assertEq(rewardToken.balanceOf(creator), 25 ether);
-        assertEq(rewardToken.balanceOf(holderTreasury), 75 ether);
-        assertEq(rewardToken.balanceOf(address(splitter)), 0);
+        assertEq(cheap.balanceOf(creator), 25 ether);
+        assertEq(cheap.balanceOf(communityTreasury), 75 ether);
+        assertEq(cost.balanceOf(creator), 50 ether);
+        assertEq(cost.balanceOf(communityTreasury), 150 ether);
     }
 
-    function testSplitBalanceSupportsManualClaims() public {
-        rewardToken.mint(address(splitter), 101);
-        splitter.splitBalance();
-        assertEq(rewardToken.balanceOf(creator), 25);
-        assertEq(rewardToken.balanceOf(holderTreasury), 76);
+    function testSplitBalancesSupportsManualClaimsOfEitherAsset() public {
+        cheap.mint(address(splitter), 101);
+        splitter.splitBalances();
+        assertEq(cheap.balanceOf(creator), 25);
+        assertEq(cheap.balanceOf(communityTreasury), 76);
+
+        cost.mint(address(splitter), 101);
+        splitter.splitBalances();
+        assertEq(cost.balanceOf(creator), 25);
+        assertEq(cost.balanceOf(communityTreasury), 76);
     }
 
-    function testFuzzSplitBalanceRoutesEveryUnit(uint128 amount) public {
-        vm.assume(amount > 0);
-        rewardToken.mint(address(splitter), amount);
+    function testFuzzSplitBalancesRouteEveryUnit(uint128 cheapAmount, uint128 costAmount) public {
+        vm.assume(cheapAmount > 0 || costAmount > 0);
+        cheap.mint(address(splitter), cheapAmount);
+        cost.mint(address(splitter), costAmount);
 
-        (uint256 creatorAmount, uint256 holderAmount) = splitter.splitBalance();
-        uint256 expectedCreatorAmount = (uint256(amount) * splitter.CREATOR_SHARE_BPS()) / splitter.BASIS_POINTS();
+        (uint256 cheapCreator, uint256 cheapCommunity, uint256 costCreator, uint256 costCommunity) =
+            splitter.splitBalances();
 
-        assertEq(creatorAmount, expectedCreatorAmount);
-        assertEq(holderAmount, uint256(amount) - expectedCreatorAmount);
-        assertEq(rewardToken.balanceOf(creator), creatorAmount);
-        assertEq(rewardToken.balanceOf(holderTreasury), holderAmount);
-        assertEq(rewardToken.balanceOf(address(splitter)), 0);
+        assertEq(cheapCreator + cheapCommunity, uint256(cheapAmount));
+        assertEq(costCreator + costCommunity, uint256(costAmount));
+        assertEq(cheapCreator, (uint256(cheapAmount) * splitter.CREATOR_SHARE_BPS()) / splitter.BASIS_POINTS());
+        assertEq(costCreator, (uint256(costAmount) * splitter.CREATOR_SHARE_BPS()) / splitter.BASIS_POINTS());
+        assertEq(cheap.balanceOf(creator), cheapCreator);
+        assertEq(cheap.balanceOf(communityTreasury), cheapCommunity);
+        assertEq(cost.balanceOf(creator), costCreator);
+        assertEq(cost.balanceOf(communityTreasury), costCommunity);
     }
 
     function testPoolCannotBeReconfigured() public {
         vm.prank(owner);
         vm.expectRevert(CheapFeeSplitter.PoolAlreadyConfigured.selector);
-        splitter.configurePool(address(feeManager), bytes32(uint256(2)));
+        splitter.configurePool(address(feeManager), bytes32(uint256(2)), IERC20(address(cheap)));
     }
 
     function testOnlyOwnerCanConfigurePool() public {
         CheapFeeSplitter unconfigured = _newUnconfiguredSplitter();
 
         vm.expectRevert();
-        unconfigured.configurePool(address(feeManager), poolId);
+        unconfigured.configurePool(address(feeManager), poolId, IERC20(address(cheap)));
     }
 
     function testConfigurePoolRejectsZeroPoolId() public {
@@ -86,7 +103,7 @@ contract CheapFeeSplitterTest is Test {
 
         vm.prank(owner);
         vm.expectRevert(CheapFeeSplitter.InvalidFeeManager.selector);
-        unconfigured.configurePool(address(feeManager), bytes32(0));
+        unconfigured.configurePool(address(feeManager), bytes32(0), IERC20(address(cheap)));
     }
 
     function testConfigurePoolRejectsAddressWithoutCode() public {
@@ -94,44 +111,61 @@ contract CheapFeeSplitterTest is Test {
 
         vm.prank(owner);
         vm.expectRevert(CheapFeeSplitter.InvalidFeeManager.selector);
-        unconfigured.configurePool(makeAddr("notAContract"), poolId);
+        unconfigured.configurePool(makeAddr("notAContract"), poolId, IERC20(address(cheap)));
     }
 
-    function testCollectRequiresConfiguredPool() public {
+    function testConfigurePoolRejectsInvalidAssetToken() public {
+        CheapFeeSplitter unconfigured = _newUnconfiguredSplitter();
+
+        vm.prank(owner);
+        vm.expectRevert(CheapFeeSplitter.InvalidAssetToken.selector);
+        unconfigured.configurePool(address(feeManager), poolId, IERC20(address(cost)));
+    }
+
+    function testCollectAndManualSplitRequireConfiguration() public {
         CheapFeeSplitter unconfigured = _newUnconfiguredSplitter();
 
         vm.expectRevert(CheapFeeSplitter.PoolNotConfigured.selector);
         unconfigured.collectAndSplit();
+        vm.expectRevert(CheapFeeSplitter.PoolNotConfigured.selector);
+        unconfigured.splitBalances();
     }
 
-    function testCollectRevertsWhenNoCostIsAvailable() public {
+    function testCollectRevertsWhenNoFeesAreAvailable() public {
         vm.expectRevert(CheapFeeSplitter.NoRewardsAvailable.selector);
         splitter.collectAndSplit();
     }
 
-    function testSplitBalanceRevertsWhenNoCostIsAvailable() public {
-        vm.expectRevert(CheapFeeSplitter.NoRewardsAvailable.selector);
-        splitter.splitBalance();
-    }
-
-    function testUnsupportedTokenCanBeRecoveredWithoutMovingCost() public {
+    function testUnsupportedTokenCanBeRecoveredWithoutMovingPoolAssets() public {
         MockERC20 unsupported = new MockERC20();
         unsupported.mint(address(splitter), 50 ether);
-        rewardToken.mint(address(splitter), 100 ether);
+        cheap.mint(address(splitter), 100 ether);
+        cost.mint(address(splitter), 100 ether);
 
         vm.prank(owner);
         splitter.sweepUnsupportedToken(IERC20(address(unsupported)), owner);
 
         assertEq(unsupported.balanceOf(owner), 50 ether);
-        assertEq(rewardToken.balanceOf(address(splitter)), 100 ether);
+        assertEq(cheap.balanceOf(address(splitter)), 100 ether);
+        assertEq(cost.balanceOf(address(splitter)), 100 ether);
     }
 
-    function testCostCannotBeSwept() public {
-        rewardToken.mint(address(splitter), 100 ether);
+    function testNeitherPoolTokenCanBeSwept() public {
+        vm.startPrank(owner);
+        vm.expectRevert(CheapFeeSplitter.PoolTokenCannotBeSwept.selector);
+        splitter.sweepUnsupportedToken(IERC20(address(cheap)), owner);
+        vm.expectRevert(CheapFeeSplitter.PoolTokenCannotBeSwept.selector);
+        splitter.sweepUnsupportedToken(IERC20(address(cost)), owner);
+        vm.stopPrank();
+    }
+
+    function testSweepRequiresConfiguration() public {
+        CheapFeeSplitter unconfigured = _newUnconfiguredSplitter();
+        MockERC20 unsupported = new MockERC20();
 
         vm.prank(owner);
-        vm.expectRevert(CheapFeeSplitter.RewardTokenCannotBeSwept.selector);
-        splitter.sweepUnsupportedToken(IERC20(address(rewardToken)), owner);
+        vm.expectRevert(CheapFeeSplitter.PoolNotConfigured.selector);
+        unconfigured.sweepUnsupportedToken(IERC20(address(unsupported)), owner);
     }
 
     function testOnlyOwnerCanSweepUnsupportedToken() public {
@@ -142,30 +176,23 @@ contract CheapFeeSplitterTest is Test {
         splitter.sweepUnsupportedToken(IERC20(address(unsupported)), owner);
     }
 
-    function testPauseStopsClaims() public {
+    function testPauseStopsCollectionAndManualSplit() public {
+        cheap.mint(address(splitter), 100 ether);
         vm.prank(owner);
         splitter.pause();
+
         vm.expectRevert();
         splitter.collectAndSplit();
-    }
-
-    function testPauseStopsManualSplitAndUnpauseRestoresIt() public {
-        rewardToken.mint(address(splitter), 100 ether);
-
-        vm.prank(owner);
-        splitter.pause();
         vm.expectRevert();
-        splitter.splitBalance();
+        splitter.splitBalances();
 
         vm.prank(owner);
         splitter.unpause();
-        splitter.splitBalance();
-
-        assertEq(rewardToken.balanceOf(creator), 25 ether);
-        assertEq(rewardToken.balanceOf(holderTreasury), 75 ether);
+        splitter.splitBalances();
+        assertEq(cheap.balanceOf(communityTreasury), 75 ether);
     }
 
     function _newUnconfiguredSplitter() private returns (CheapFeeSplitter) {
-        return new CheapFeeSplitter(IERC20(address(rewardToken)), creator, holderTreasury, owner);
+        return new CheapFeeSplitter(IERC20(address(cost)), creator, communityTreasury, owner);
     }
 }

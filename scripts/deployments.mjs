@@ -59,7 +59,7 @@ const erc20MetadataAbi = [
 ];
 
 const feeSplitterAbi = [
-  ...["rewardToken", "creatorRecipient", "holderTreasury", "owner", "feeManager"].map(
+  ...["quoteToken", "assetToken", "creatorRecipient", "communityTreasury", "owner", "feeManager"].map(
     (name) => ({
       type: "function",
       name,
@@ -450,9 +450,10 @@ async function verifyChainCommand(arguments_) {
 
   const splitter = manifest.contracts.feeSplitter.address;
   const splitterChecks = [
-    ["rewardToken", manifest.primaryMarket.quoteAsset.address],
+    ["quoteToken", manifest.primaryMarket.quoteAsset.address],
+    ["assetToken", manifest.cheapToken.contract.address],
     ["creatorRecipient", manifest.governance.creatorRecipient],
-    ["holderTreasury", manifest.governance.holderTreasurySafe],
+    ["communityTreasury", manifest.governance.holderTreasurySafe],
     ["owner", manifest.governance.protocolOwnerSafe],
     ["feeManager", manifest.primaryMarket.feeManager.address],
     ["poolId", manifest.primaryMarket.pool.poolId],

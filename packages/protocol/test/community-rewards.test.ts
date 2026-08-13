@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getAddress, keccak256, stringToHex } from "viem";
 import {
   allocateCommunityPool,
+  allocateHolderPool,
   mergeRewardAllocations,
   scoreCommunityContributions,
   splitHolderCommunityBudget,

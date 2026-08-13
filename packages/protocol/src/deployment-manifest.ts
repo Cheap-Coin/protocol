@@ -101,7 +101,7 @@ export interface DeploymentManifestV1 {
   publication: {
     publishedAt: string;
     releaseSequence: number;
-    sourceRepository: "https://github.com/Cheap-Coin/cheap-protocol";
+    sourceRepository: "https://github.com/Cheap-Coin/protocol";
     sourceCommit: string;
     signedTag: string;
     manifestPath: string;
@@ -121,7 +121,7 @@ export interface DeploymentManifestV1 {
       initializationBlock: string;
       initializationBlockHash: Hex;
       tokenIsToken0: boolean;
-      quoteOnlyCreatorFees: true;
+      creatorFeeAssets: "both_pool_assets";
       swapFeePips: number;
       creatorFeePips: number;
     };
@@ -137,9 +137,9 @@ export interface DeploymentManifestV1 {
   contracts: {
     feeSplitter: ProtocolContractDeployment;
     feeSplitterConstructorArguments: {
-      rewardToken: Address;
+      quoteToken: Address;
       creatorRecipient: Address;
-      holderTreasury: Address;
+      communityTreasury: Address;
       initialOwner: Address;
     };
     rewardDistributors: RewardDistributorDeployment[];
@@ -615,7 +615,7 @@ export function validateDeploymentManifest(value: unknown): DeploymentManifestV1
     releaseSequence,
     sourceRepository: literal(
       publicationInput.sourceRepository,
-      "https://github.com/Cheap-Coin/cheap-protocol",
+      "https://github.com/Cheap-Coin/protocol",
       "publication.sourceRepository",
     ),
     sourceCommit,
@@ -701,7 +701,7 @@ export function validateDeploymentManifest(value: unknown): DeploymentManifestV1
     "initializationBlock",
     "initializationBlockHash",
     "tokenIsToken0",
-    "quoteOnlyCreatorFees",
+    "creatorFeeAssets",
     "swapFeePips",
     "creatorFeePips",
   ]);
@@ -725,10 +725,10 @@ export function validateDeploymentManifest(value: unknown): DeploymentManifestV1
         "primaryMarket.pool.initializationBlockHash",
       ),
       tokenIsToken0: poolInput.tokenIsToken0,
-      quoteOnlyCreatorFees: literal(
-        poolInput.quoteOnlyCreatorFees,
-        true,
-        "primaryMarket.pool.quoteOnlyCreatorFees",
+      creatorFeeAssets: literal(
+        poolInput.creatorFeeAssets,
+        "both_pool_assets",
+        "primaryMarket.pool.creatorFeeAssets",
       ),
       swapFeePips: integer(poolInput.swapFeePips, "primaryMarket.pool.swapFeePips", 1, 1_000_000),
       creatorFeePips: integer(
@@ -751,20 +751,20 @@ export function validateDeploymentManifest(value: unknown): DeploymentManifestV1
   const feeArgsInput = record(
     contractsInput.feeSplitterConstructorArguments,
     "contracts.feeSplitterConstructorArguments",
-    ["rewardToken", "creatorRecipient", "holderTreasury", "initialOwner"],
+    ["quoteToken", "creatorRecipient", "communityTreasury", "initialOwner"],
   );
   const feeSplitterConstructorArguments = {
-    rewardToken: address(
-      feeArgsInput.rewardToken,
-      "contracts.feeSplitterConstructorArguments.rewardToken",
+    quoteToken: address(
+      feeArgsInput.quoteToken,
+      "contracts.feeSplitterConstructorArguments.quoteToken",
     ),
     creatorRecipient: address(
       feeArgsInput.creatorRecipient,
       "contracts.feeSplitterConstructorArguments.creatorRecipient",
     ),
-    holderTreasury: address(
-      feeArgsInput.holderTreasury,
-      "contracts.feeSplitterConstructorArguments.holderTreasury",
+    communityTreasury: address(
+      feeArgsInput.communityTreasury,
+      "contracts.feeSplitterConstructorArguments.communityTreasury",
     ),
     initialOwner: address(
       feeArgsInput.initialOwner,
@@ -778,9 +778,9 @@ export function validateDeploymentManifest(value: unknown): DeploymentManifestV1
     "the CHEAP fee splitter",
   );
   requireSameAddress(
-    feeSplitterConstructorArguments.rewardToken,
+    feeSplitterConstructorArguments.quoteToken,
     quoteAsset.address,
-    "contracts.feeSplitterConstructorArguments.rewardToken",
+    "contracts.feeSplitterConstructorArguments.quoteToken",
     "canonical COST",
   );
   requireSameAddress(
@@ -790,10 +790,10 @@ export function validateDeploymentManifest(value: unknown): DeploymentManifestV1
     "the creator recipient",
   );
   requireSameAddress(
-    feeSplitterConstructorArguments.holderTreasury,
+    feeSplitterConstructorArguments.communityTreasury,
     governance.holderTreasurySafe,
-    "contracts.feeSplitterConstructorArguments.holderTreasury",
-    "the holder treasury Safe",
+    "contracts.feeSplitterConstructorArguments.communityTreasury",
+    "the community treasury Safe",
   );
   requireSameAddress(
     feeSplitterConstructorArguments.initialOwner,

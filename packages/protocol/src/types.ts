@@ -4,6 +4,7 @@ export interface HolderScoreInput {
   address: Address;
   minimumBalance: bigint;
   streak: number;
+  outboundTransfer?: boolean;
   excluded?: boolean;
 }
 export interface HolderAllocation extends HolderScoreInput {
@@ -24,4 +25,5 @@ export interface TrackedHolder {
   address: Address;
   balance: bigint;
   minimumBalance: bigint;
+  outboundTransfer: boolean;
 }

@@ -15,12 +15,12 @@ contract DeployProtocol is Script {
     function run() external returns (CheapFeeSplitter splitter, CheapBatchDistributor distributor) {
         IERC20 cost = IERC20(vm.envAddress("COST_ADDRESS"));
         address creatorRecipient = vm.envAddress("CREATOR_RECIPIENT");
-        address holderTreasury = vm.envAddress("HOLDER_TREASURY_SAFE");
+        address communityTreasury = vm.envAddress("HOLDER_TREASURY_SAFE");
         address operator = vm.envAddress("DISTRIBUTION_OPERATOR");
         address ownerSafe = vm.envAddress("PROTOCOL_OWNER_SAFE");
 
         vm.startBroadcast();
-        splitter = new CheapFeeSplitter(cost, creatorRecipient, holderTreasury, ownerSafe);
+        splitter = new CheapFeeSplitter(cost, creatorRecipient, communityTreasury, ownerSafe);
         distributor = new CheapBatchDistributor(cost, operator, ownerSafe);
         vm.stopBroadcast();
 

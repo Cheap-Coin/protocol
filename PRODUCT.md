@@ -17,7 +17,8 @@ partner benefits.
 
 Everything is expensive. CheapCoin went looking for cheap. The application
 connects a speculative community token to visible, verifiable utility: a primary
-CHEAP market, transparent creator-fee routing, multi-asset Diamond Drops,
+CHEAP market, transparent creator-fee routing, strict COST Diamond Drops,
+weighted-random CHEAP Surprise Drops,
 deal discovery, partner benefits, education, and a public reward ledger.
 
 Success means a user can quickly understand what they hold, which benefits they
@@ -60,8 +61,8 @@ brokerage or imply that CHEAP itself is equity.
 
 ## Design Principles
 
-1. Show the loop clearly: trading produces fees, the treasury funds rewards,
-   holding determines eligibility, and users receive the named reward asset.
+1. Show the loop clearly: trading produces CHEAP and COST fees, the treasury
+   funds separate programs, and users can verify each named reward asset.
 2. Lead with the next useful action for each connected user.
 3. Prove every measurable claim with live data, methodology, and onchain records.
 4. Treat RWA drops, partner perks, and deal discovery as one holder-benefits system.

@@ -59,7 +59,7 @@ The production-oriented pre-deployment foundation is implemented. It includes:
   against PostgreSQL 16 in CI.
 - Rewards ledger `pnpm check`: compiled and applied 7 JSON Schemas and reproduced
   5 complete drop fixtures plus 1 linked reconciliation fixture.
-- Public deterministic logic: 45 Vitest cases passed, including strict holding,
+- Public deterministic logic: 49 Vitest cases passed, including strict holding,
   hidden-window selection, weighted-random selection, and seeded allocation cases.
 - Foundry: 30 unit, fuzz, and invariant properties/tests passed. Each stateful
   property ran 16,384 calls with zero handler reverts.

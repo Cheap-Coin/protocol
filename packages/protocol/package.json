@@ -19,7 +19,7 @@
     "test:runtime": "node -e \"import('./dist/index.js').then(() => console.log('Protocol runtime import passed'))\""
   },
   "dependencies": {
-    "viem": "2.55.11"
+    "viem": "2.55.16"
   },
   "devDependencies": {
     "ajv": "8.20.0",

@@ -13,14 +13,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deterministic-logic:
+  typescript-clients:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Check out source and pinned dependencies
+      - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
           persist-credentials: false
 
       - name: Install pnpm
@@ -37,115 +36,32 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build, typecheck, and test deterministic logic
-        run: pnpm --filter @cheap/protocol build && pnpm --filter @cheap/protocol typecheck && pnpm --filter @cheap/protocol test && pnpm --filter @cheap/protocol test:runtime && node scripts/deployments.mjs validate
+      - name: Build and verify generated clients and manifests
+        run: pnpm check
 
-  foundry:
+  cheap-lock-rust:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - name: Check out source and pinned dependencies
+      - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
           persist-credentials: false
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - name: Install pinned Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
-          version: 11.3.0
+          toolchain: 1.91.1
+          components: clippy,rustfmt
 
-      - name: Install Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24.13.0
-          cache: pnpm
+      - name: Formatting
+        run: cargo fmt --all -- --check
 
-      - name: Install locked dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Compiler and Clippy
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
-        with:
-          version: v1.7.1
+      - name: Unit and property tests
+        run: cargo test --locked --workspace
 
-      - name: Formatting and compiler lint
-        working-directory: contracts
-        run: forge fmt --check && forge lint --deny warnings
-
-      - name: Unit, fuzz, and invariant tests
-        working-directory: contracts
-        run: forge test --force -vv
-
-      - name: Build sizes
-        working-directory: contracts
-        run: forge build --force --sizes
-
-      - name: Generate Aderyn report
-        working-directory: contracts
-        run: pnpm security:aderyn
-
-      - name: Retain Aderyn report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: aderyn-report
-          path: contracts/aderyn-report.md
-          if-no-files-found: error
-          retention-days: 30
-
-  slither:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - name: Check out source and pinned dependencies
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          submodules: recursive
-          persist-credentials: false
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: 11.3.0
-
-      - name: Install Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24.13.0
-          cache: pnpm
-
-      - name: Install locked dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
-        with:
-          version: v1.7.1
-
-      - name: Install Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-
-      - name: Install Slither
-        run: |
-          python -m venv "$RUNNER_TEMP/slither"
-          "$RUNNER_TEMP/slither/bin/python" -m pip install \
-            --disable-pip-version-check \
-            slither-analyzer==0.11.6
-
-      - name: Prepare isolated analysis workspace
-        run: pnpm --dir contracts prepare:analysis
-
-      - name: Compile isolated analysis workspace
-        working-directory: contracts/.analysis-workspace
-        run: forge build --build-info --force
-
-      - name: Slither analysis
-        working-directory: contracts/.analysis-workspace
-        run: |
-          "$RUNNER_TEMP/slither/bin/slither" . \
-            --ignore-compile \
-            --fail-high \
-            --exclude-dependencies \
-            --filter-paths "lib"
+      - name: Record dependency graph
+        run: cargo tree --locked --workspace

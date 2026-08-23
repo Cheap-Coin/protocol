@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Cheap-Coin/protocol/main/deployments/launch-manifest-v1.schema.json",
+  "title": "CheapCoin Solana launch manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "launchId", "lifecycle", "cluster", "token", "pump", "canonicalPool", "governance", "programs", "verification", "publication"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "launchId": { "$ref": "#/$defs/slug" },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "updatedAt"],
+      "properties": {
+        "state": { "enum": ["PRELAUNCH", "BONDING_CURVE", "PUMPSWAP"] },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "cluster": { "enum": ["localnet", "devnet", "mainnet-beta"] },
+    "token": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "symbol", "mint", "tokenProgram", "decimals"],
+      "properties": {
+        "name": { "const": "CheapCoin" },
+        "symbol": { "const": "CHEAP" },
+        "mint": { "$ref": "#/$defs/nullableAddress" },
+        "tokenProgram": { "$ref": "#/$defs/nullableAddress" },
+        "decimals": { "type": ["integer", "null"], "minimum": 0, "maximum": 9 }
+      }
+    },
+    "pump": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["programId", "feesProgramId", "ammProgramId", "global", "bondingCurve", "sharingConfig", "feeSharing"],
+      "properties": {
+        "programId": { "const": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P" },
+        "feesProgramId": { "const": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ" },
+        "ammProgramId": { "const": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA" },
+        "global": { "$ref": "#/$defs/nullableAddress" },
+        "bondingCurve": { "$ref": "#/$defs/nullableAddress" },
+        "sharingConfig": { "$ref": "#/$defs/nullableAddress" },
+        "feeSharing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ownerTreasuryVault", "communityTreasuryVault", "ownerShareBps", "communityShareBps", "finalizedSignature"],
+          "properties": {
+            "ownerTreasuryVault": { "$ref": "#/$defs/address" },
+            "communityTreasuryVault": { "$ref": "#/$defs/address" },
+            "ownerShareBps": { "const": 7500 },
+            "communityShareBps": { "const": 2500 },
+            "finalizedSignature": { "$ref": "#/$defs/nullableSignature" }
+          }
+        }
+      }
+    },
+    "canonicalPool": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["address", "lpMint", "quoteMint", "verifiedAtSlot", "verificationSignature"],
+          "properties": {
+            "address": { "$ref": "#/$defs/address" },
+            "lpMint": { "$ref": "#/$defs/address" },
+            "quoteMint": { "const": "So11111111111111111111111111111111111111112" },
+            "verifiedAtSlot": { "$ref": "#/$defs/positiveDecimal" },
+            "verificationSignature": { "$ref": "#/$defs/signature" }
+          }
+        }
+      ]
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["squadsMultisig", "ownerTreasuryVault", "communityTreasuryVault", "threshold", "signerCount"],
+      "properties": {
+        "squadsMultisig": { "$ref": "#/$defs/address" },
+        "ownerTreasuryVault": { "$ref": "#/$defs/address" },
+        "communityTreasuryVault": { "$ref": "#/$defs/address" },
+        "threshold": { "const": 2 },
+        "signerCount": { "const": 3 }
+      }
+    },
+    "programs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cheapLock", "rewards"],
+      "properties": {
+        "cheapLock": { "$ref": "#/$defs/nullableAddress" },
+        "rewards": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["programId", "auditedCommit", "deploymentSignature"],
+              "properties": {
+                "programId": { "const": "REWArDioXgQJ2fZKkfu9LCLjQfRwYWVVfsvcsR5hoXi" },
+                "auditedCommit": { "const": "aa1cfd9276375e44e57d1917d110ff095fb6d475" },
+                "deploymentSignature": { "$ref": "#/$defs/signature" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot", "blockhash"],
+      "properties": {
+        "slot": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/positiveDecimal" }] },
+        "blockhash": { "$ref": "#/$defs/nullableAddress" }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceRepository", "sourceCommit", "signedTag", "manifestPath", "artifactSha256"],
+      "properties": {
+        "sourceRepository": { "const": "https://github.com/Cheap-Coin/protocol" },
+        "sourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "signedTag": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^launch/[a-z0-9]+(?:-[a-z0-9]+)*/v[1-9][0-9]*$" }] },
+        "manifestPath": { "type": "string", "pattern": "^deployments/[a-z0-9]+(?:-[a-z0-9]+)*\\.manifest\\.json$" },
+        "artifactSha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha256" }] }
+      }
+    }
+  },
+  "$defs": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "maxLength": 80 },
+    "address": { "type": "string", "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$" },
+    "nullableAddress": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/address" }] },
+    "signature": { "type": "string", "pattern": "^[1-9A-HJ-NP-Za-km-z]{80,90}$" },
+    "nullableSignature": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/signature" }] },
+    "sha256": { "type": "string", "pattern": "^(?!0{64}$)[0-9a-f]{64}$" },
+    "positiveDecimal": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$" }
+  }
+}

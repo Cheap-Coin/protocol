@@ -1,0 +1,33 @@
+[package]
+name = "cheap-lock"
+version = "0.1.0"
+description = "Non-custodial CHEAP commitment positions with unrestricted principal withdrawal"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "cheap_lock"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[dependencies]
+anchor-lang = "0.32.1"
+anchor-spl = { version = "0.32.1", default-features = false, features = ["token", "token_2022"] }
+solana-security-txt = "1.1.1"
+
+[dev-dependencies]
+proptest = "1.9.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(target_os, values("solana"))',
+  'cfg(feature, values("anchor-debug", "custom-heap", "custom-panic"))',
+] }

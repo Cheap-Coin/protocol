@@ -1,94 +1,36 @@
 # Security model
 
-## Roles and keys
+## cheap-lock invariants
 
-| Role | Recommended control | Capability |
-|---|---|---|
-| Protocol owner | 2-of-3 or stronger Safe | Configure pool once, pause, approve drops, rotate operator |
-| Creator recipient | Safe or disclosed wallet | Receive immutable 25% COST share |
-| Holder-reward treasury | Separate Safe | Hold 75% COST share and fund approved asset-specific drops |
-| Batch operator | Limited hot key | Execute only root-approved batches; cannot alter recipients |
-| Indexer/API | No signing key | Read finalized logs, compute and publish data |
-| Web app | No custody | Read state and request user-approved wallet actions |
+- The configuration permanently fixes one CHEAP mint and legacy SPL Token program.
+- Mint and freeze authorities must already be revoked at initialization.
+- Initialization is authorized by the program's upgrade authority; configuration
+  authority is then transferred to Squads.
+- `(owner, deposit_id)` uniquely identifies a position and its isolated vault.
+- Principal, tier, open time, and unlock time cannot be edited or topped up.
+- Only the position owner can withdraw; the entire vault balance is returned.
+- Maturity changes recorded eligibility state, never withdrawal permission.
+- Pause applies only to opening a position. There is no admin seizure path.
 
-Production domains, deployment wallets, Safe signers, RPC credentials, database
-credentials, and monitoring accounts must use separate secrets and least
-privilege. No Bankr API key or operator key belongs in a browser environment.
+Finalized campaign eligibility is recorded by campaign artifacts/indexing rather
+than made mutable by lock withdrawal. The retained position account is the public
+historical anchor.
 
-## Enforced invariants
+## Operational controls
 
-- COST and both fee recipients are immutable in the splitter.
-- COST always splits 25/75; rounding dust goes to holders.
-- Fee manager/pool configuration is one-time.
-- Each distributor is permanently bound to one reward token.
-- A drop is fully funded in that exact token before its commitment becomes active.
-- Safe-approved batch proofs bind drop, index, recipients, and amounts.
-- A wallet and batch are each usable once per drop.
-- Paid value cannot exceed the reserved drop amount.
-- Reserved reward tokens cannot be withdrawn.
-- A finalized or cancelled drop ID cannot be reused.
-- Partially paid funds require pause, seven days, and a Safe action before release.
+The owner manages a 2-of-3 Squads multisig but keeps each signer on an independent
+device/recovery path. Owner/community fee vaults are separate. Backend services
+have read/provider credentials only and emit unsigned artifacts. Provider data is
+accepted at finalized commitment for balances, locks, pool, and campaign execution.
 
-## Threat handling
+All transaction builders bind cluster, fee payer, program/account addresses,
+recent blockhash, last valid block height, instructions, and successful simulation
+into a canonical SHA-256 artifact. Signing material and pre-collected signatures
+are rejected from unsigned artifacts.
 
-| Threat | Control |
-|---|---|
-| Compromised operator | Merkle root rejects changed recipients/amounts; Safe rotates operator |
-| Compromised API | UI reads onchain roots/events; API cannot sign or move funds |
-| RPC reorg/provider inconsistency | Finalized-block indexing, cursor hash check, fail-closed remediation state |
-| Duplicate/replayed payout | Batch and recipient mappings onchain |
-| Malicious token approval request | Core viewing requests no approval; writes show contract/action |
-| Fake COST contract | Canonical address pinned and linked to Robinhood registry/explorer |
-| Fake additional RWA | Registry verification, pinned chain-4663 address, separate distributor, Safe checklist |
-| Asset paused/retired | Block new funding and drops for that asset; do not substitute another token automatically |
-| Corporate action | Monitor registry multiplier/actions and pause new artifacts until balances and display units reconcile |
-| Stuck recipient/batch | Atomic batch revert, then delayed paused remediation and replacement artifact |
-| Database tampering | Deterministic independent recomputation, immutable artifact hash, onchain roots |
-| Rule changes after seeing holders | Rules hash and window blocks published before the window |
-| Supply-chain compromise | Exact package pins, lockfile policy verification, minimal approved install scripts |
+## Production gates
 
-GitHub Actions are pinned to immutable commit SHAs and receive read-only default
-permissions. Dependabot proposes reviewed updates; no workflow follows an
-unpinned third-party action tag at runtime.
-
-Production addresses are accepted only through the canonical deployment-manifest
-pipeline. It checks exact JSON bytes, a disclosed signed Git tag, a finalized
-block/hash anchor, successful deployment receipts, current runtime-code hashes,
-token metadata, immutable constructor-derived state, configured pool/fee manager,
-and the 25/75 constants before it can emit live settings. The RPC URL remains a
-server-side operator secret and is redacted from verifier failures.
-
-## Required work before mainnet value
-
-1. Independent audit of both contracts and the TypeScript/Solidity hashing match.
-2. Fork tests against the exact Bankr initializer, pool ID, and canonical COST
-   contract returned by the real launch simulation.
-3. Testnet or low-value mainnet rehearsal covering fee claim, split, 201+ holder
-   batches, failed batch, pause, remediation, and finalization for COST; repeat a
-   low-value rehearsal before activating every additional reward token.
-4. Two independent snapshot implementations must agree on balances, exclusions,
-   roots, and totals for a shadow window.
-5. Safe transaction simulation and human-readable signing checklist.
-6. Archive RPC primary plus an independent fallback used for reconciliation.
-7. Monitoring for cursor lag, hash mismatch, treasury changes, failed batches,
-   unexpected beneficiary changes, pauses, and operator rotation.
-8. Backups and point-in-time recovery for PostgreSQL; immutable public artifact
-   storage must not depend on the database backup.
-9. Confirm each artifact's token and distributor target by calling the immutable
-   `rewardToken()` value before the Safe signs. Never use an automated treasury
-   swap or token substitution in V1.
-
-Passing repository tests is not an audit. No contract should be deployed with
-meaningful value until these gates are complete.
-
-The current automated and manual toolchain is specified in
-[SECURITY-TOOLING.md](SECURITY-TOOLING.md), and repository access boundaries are
-specified in [REPOSITORIES.md](REPOSITORIES.md).
-
-## Frontend safety
-
-The production UI must keep contract addresses visible, distinguish preview from
-live data, display RPC/API failures rather than stale success, use a restrictive
-Content Security Policy, and proxy analytics so wallet addresses are not leaked
-to unrelated third parties. Wallet signatures must state their purpose; CHEAP
-balance viewing never needs an ERC-20 approval or blind message signature.
+Mainnet requires an independent audit, exact source/deployment mapping, reproducible
+build, dependency review, devnet failure drills, withdrawal invariant tests, signed
+manifest, monitoring, incident contacts, and documented upgrade freeze process.
+Passing repository CI alone cannot satisfy these gates.

@@ -20,11 +20,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Check out source and pinned dependencies
+      - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          submodules: recursive
           persist-credentials: false
 
       - name: Install pnpm
@@ -44,6 +43,22 @@ jobs:
       - name: Audit production dependencies
         run: pnpm security:deps
 
+      - name: Install pinned Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
+        with:
+          toolchain: 1.91.1
+
+      - name: Install pinned Rust dependency scanners
+        uses: taiki-e/install-action@13608cbb45b01feb47ef444ab1a42dc41ad56f1a # v2.79.11
+        with:
+          tool: cargo-audit@0.22.2,cargo-deny@0.20.2
+          fallback: none
+
+      - name: Enforce Rust advisories, licenses, and sources
+        run: |
+          cargo audit
+          cargo deny check
+
       - name: Scan dependencies, secrets, and configuration
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -54,4 +69,4 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
           version: v0.73.0
-          skip-dirs: node_modules,contracts/lib,contracts/out,contracts/cache
+          skip-dirs: node_modules,target

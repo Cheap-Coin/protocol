@@ -1,12 +1,9 @@
-# Security reviews
+# Audit records
 
-No independent CheapCoin audit has been completed yet.
+No independent CheapCoin audit is published yet. Accordingly, no value-holding
+program in this repository is described as production-ready.
 
-Final audit reports, exact reviewed commits, scope, unresolved findings, and
-remediation commits will be published here. Automated Foundry, Slither, Aderyn,
-and dependency reports are supporting evidence and must not be described as an
-independent audit.
-
-The current local scanner findings and decisions are documented in
-[PRELIMINARY-STATIC-ANALYSIS.md](PRELIMINARY-STATIC-ANALYSIS.md). They must be
-rerun against and bound to the final signed audit commit.
+When an audit is commissioned, publish the final report, audited source commit,
+program build hash, tool versions, scope exclusions, findings, remediation commits,
+and deployment mapping here. Self-authored notes, unit tests, or automated scanners
+must not be labelled an independent audit.

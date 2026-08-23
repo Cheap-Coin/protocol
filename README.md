@@ -1,47 +1,65 @@
 # CheapCoin Protocol
 
-Public, MIT-licensed contracts and deterministic reward logic for CheapCoin on
-Robinhood Chain. This repository is the canonical source for protocol code,
-reward rules, deployment records, tests, and published security evidence.
+Public Solana protocol, predeployment TypeScript transaction builders, launch commitments, and
+campaign calculation libraries for the CheapCoin relaunch.
 
-The planned primary market is one `CHEAP/COST` Bankr/Doppler pool with a fixed
-100B CHEAP supply and standard two-asset creator fees. Collected CHEAP and COST
-are each split 25% to the creator beneficiary and 75% to the community Safe.
-CHEAP can fund weighted-random Surprise Drops; COST funds strict-holding Diamond
-Drops. Other approved canonical
-RWA tokens use separately funded, immutable-token distributors; they do not
-create additional CHEAP launch pools.
+No new CHEAP mint, canonical pool, or mainnet CheapCoin program is deployed by
+this repository state. The application must remain `PRELAUNCH` until the owner
+launches through Pump.fun and publishes a signed, chain-verified launch manifest.
+The development program ID in `Anchor.toml` is not a deployment claim.
 
-## Security model
+## Active components
 
-- The fee splitter's COST token, recipients, and 25/75 ratio are immutable.
-- Its CHEAP token, fee manager, and pool ID are configured together exactly once.
-- Every distributor is bound to exactly one reward token.
-- A Safe commits the exact drop totals and Merkle roots before an operator can
-  execute approved batches.
-- The operator cannot alter a recipient or amount without invalidating proof.
-- This repository is pre-deployment. No address is canonical until it appears
-  in `deployments/` with source verification and a signed release.
+- `programs/cheap-lock`: isolated 30-day and 90-day CHEAP commitment positions.
+  Full principal is withdrawable at any time; early withdrawal changes eligibility
+  state but never principal. Pausing affects new positions only.
+- `packages/protocol`: strict Solana types, launch-manifest verification, Pump
+  account derivation and 75/25 fee-share rehearsal, lock instruction builders,
+  and deterministic direct/Merkle campaign artifacts.
+- `deployments`: the public schema and tooling for `PRELAUNCH`, `BONDING_CURVE`,
+  and `PUMPSWAP` manifests.
+
+This repository does not contain a token deployer, backend signing key, swap UI,
+second liquidity pool, automatic social-reward join, or yield promise.
 
 ## Development
 
-Requirements: Node 24+, pnpm 11+, and Foundry 1.7.1.
+Requirements are Node.js 24, pnpm 11.3.0, Rust 1.91.1, Anchor 0.32.1, and
+Solana CLI 3.0.10.
 
 ```bash
-git clone --recurse-submodules https://github.com/Cheap-Coin/protocol.git
-cd protocol
 pnpm install --frozen-lockfile
 pnpm check
+cargo fmt --all -- --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo audit
+cargo deny check
+anchor build
 ```
 
-CI additionally runs pinned Slither, Aderyn, Trivy, and dependency checks. These
-tools do not replace an independent audit.
+The TypeScript suite is runnable independently. Rust and SBF commands require the
+pinned local toolchain. A successful self-run is necessary but never substitutes
+for independent review of a value-holding mainnet deployment.
 
-## Documentation
+The current lock client is hand-maintained and covered by TypeScript tests; it is
+not presented as generated from an Anchor IDL. Before deployment, generate the IDL
+from the reviewed SBF source and replace or independently verify the client byte for
+byte, including every discriminator, account order, signer/writable flag, and argument.
 
-- `deployments/` defines canonical manifests and signed release verification.
-- `docs/LAUNCH.md` and `docs/BANKR-SIMULATION.md` define the pre-broadcast review.
-- `docs/RULES-v1.md` defines strict COST Diamond Drop holding rules.
-- `docs/COMMUNITY-REWARDS.md` defines Genesis records and weighted-random CHEAP
-  Surprise Drops.
-- `SECURITY.md` explains private vulnerability reporting.
+## Deployment boundary
+
+The owner controls an owner-managed 2-of-3 Squads multisig using three independent
+hardware/recovery devices. Separate owner and community treasury vaults are the
+only Pump fee recipients: 75% owner and 25% community. The effectively final Pump
+shareholder update must be rehearsed byte-for-byte before it is proposed.
+
+After launch, publish a canonical manifest and signed tag according to
+[deployments/README.md](./deployments/README.md). Liquidity actions remain disabled
+until the manifest reaches `PUMPSWAP` and verifies the canonical CHEAP/wrapped-SOL
+pool and LP mint. Mainnet lock and rewards programs remain disabled until their
+audit and deployment records are complete.
+
+See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md),
+[docs/LAUNCH.md](./docs/LAUNCH.md), [docs/CAMPAIGNS.md](./docs/CAMPAIGNS.md), and
+[docs/SECURITY.md](./docs/SECURITY.md).

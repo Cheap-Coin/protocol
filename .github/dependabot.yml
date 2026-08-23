@@ -14,7 +14,7 @@ updates:
       development-dependencies:
         dependency-type: development
 
-  - package-ecosystem: gitsubmodule
+  - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly

@@ -1,5 +1,22 @@
 # Owner checklist
 
+## Application prelaunch acceptance
+
+- [ ] The private showcase is visibly labelled `Preview` on desktop and mobile;
+      wallet, X, deal, lock, claim, and liquidity actions remain inert.
+- [ ] The live interface uses no preview fallback and shows a local warning for
+      stale or unavailable service data.
+- [ ] One API process and one discovery worker pass `/ready`, persist a finalized
+      snapshot, and populate `/v1/dashboard` without exposing provider keys.
+- [ ] A controlled Jupiter, DEX Screener, or Helius failure preserves the previous
+      snapshot and changes its state to `stale` without publishing a partial run.
+- [ ] Public routes work without a wallet; SIWS rejection, reconnect, sign-out,
+      replay, wrong-origin mutation, and provider-outage paths are rehearsed.
+- [ ] The owner reviews desktop, tablet, and mobile layouts, keyboard navigation,
+      reduced motion, data labels, risk language, and every empty/error state.
+- [ ] `PRELAUNCH` remains configured in the interface and service; every lock,
+      claim, Pump, campaign, and liquidity transaction endpoint remains disabled.
+
 ## Accounts and recovery
 
 - [ ] Three independent signer devices/recovery sets created and never uploaded.

@@ -24,12 +24,19 @@ checked arithmetic, campaign budget caps, pool/manifest mismatch, failed simulat
 and blockhash expiry.
 
 The 2026-08-23 Windows review environment did not expose Rust, Cargo, Anchor, or
-Docker, so this document does not claim a fresh local Rust result. Pinned CI runs
-formatting, Clippy, native tests, `cargo audit`, and `cargo deny check` after the
-pivot is committed. `deny.toml` records one narrow informational exception for
-unmaintained `bincode` 1.3.3 through Anchor 0.32.1; RustSec lists no patched bincode
-version. Retain the CI logs and review any new advisory before release. A clean
-native result is still not an SBF build or LiteSVM result.
+Docker, so this document does not claim a fresh local Rust execution. Pinned
+[Protocol CI run 32648847561](https://github.com/Cheap-Coin/protocol/actions/runs/32648847561)
+passed formatting, Clippy, and native unit/property tests for commit
+`3476e7cdb4504e28ab8ad712d81822a6cd17c78e`. Pinned
+[Repository Security run 32648847584](https://github.com/Cheap-Coin/protocol/actions/runs/32648847584)
+passed `cargo audit`, `cargo deny check`, production dependency audit, and the
+filesystem dependency/secret/misconfiguration scan for the same commit.
 
-No report should use “audited” for an automated scan or self-review. Independent
+`deny.toml` records one narrow informational exception for unmaintained `bincode`
+1.3.3 through Anchor 0.32.1; RustSec lists no patched bincode version. Retain the
+CI logs and review any new advisory before release. A clean native result is still
+not an SBF build, IDL/client equivalence proof, LiteSVM result, devnet rehearsal,
+reproducible build record, or independent audit.
+
+No report should use "audited" for an automated scan or self-review. Independent
 findings and remediation records belong under `audits/`.

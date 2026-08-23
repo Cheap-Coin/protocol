@@ -16,11 +16,15 @@ Checked 2026-08-23.
 
 - TypeScript lint, typecheck, unit tests, build, runtime import, and empty-manifest
   validation are part of `pnpm check`.
-- The pinned CI workflows require Rust formatting, Clippy with warnings denied,
-  native unit/property tests, RustSec, Cargo Deny, and filesystem scanning.
+- Pinned [Protocol CI run 32648847561](https://github.com/Cheap-Coin/protocol/actions/runs/32648847561)
+  passed for commit `3476e7cdb4504e28ab8ad712d81822a6cd17c78e`, including Rust formatting,
+  Clippy with warnings denied, native unit/property tests, the TypeScript suite,
+  builds, and runtime checks.
+- Pinned [Repository Security run 32648847584](https://github.com/Cheap-Coin/protocol/actions/runs/32648847584)
+  passed for the same commit, including production dependency audit, RustSec,
+  Cargo Deny, and Trivy dependency/secret/misconfiguration scanning.
 - This Windows review environment did not expose Rust, Cargo, Anchor, or Docker,
-  so no local Rust result is claimed for 2026-08-23. Retain the first post-pivot CI
-  result before treating those checks as passed.
+  so the Rust result above is CI evidence rather than a fresh local execution.
 
 ## Not deployed or production-ready
 

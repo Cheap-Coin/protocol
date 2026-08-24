@@ -45,6 +45,8 @@
 
 - [ ] Rust formatting, Clippy, unit/property, LiteSVM, and devnet suites pass.
 - [ ] Dependency, secret, and reproducible-build checks pass.
+- [ ] The artifact's recorded SBPF version is accepted by current cluster features;
+      any required toolchain migration repeats the full review and test gates.
 - [ ] Independent audit/review scope and remediation are published.
 - [ ] Configuration and upgrade authority are held by Squads.
 - [ ] Withdrawals succeed while paused and before maturity in adversarial rehearsal.

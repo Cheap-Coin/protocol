@@ -45,7 +45,6 @@ jobs:
     env:
       AGAVE_INSTALLER_SHA256: dfd8afbff06d8c0302e11c2fbead5464d5c773097af97c772f3df8470677e130
       ANCHOR_SOURCE_COMMIT: 24035e2b0035c87e321acc1c05f97793829a87f1
-      SOLANA_DATA_DIR: ${{ runner.temp }}/solana
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -89,11 +88,12 @@ jobs:
         run: |
           set -euo pipefail
           installer="$RUNNER_TEMP/agave-install.sh"
+          solana_data_dir="$RUNNER_TEMP/solana"
           curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
             https://release.anza.xyz/v3.1.10/install --output "$installer"
           echo "$AGAVE_INSTALLER_SHA256  $installer" | sha256sum --check --strict
-          sh "$installer" v3.1.10 --data-dir "$SOLANA_DATA_DIR" --no-modify-path
-          echo "$SOLANA_DATA_DIR/active_release/bin" >> "$GITHUB_PATH"
+          sh "$installer" v3.1.10 --data-dir "$solana_data_dir" --no-modify-path
+          echo "$solana_data_dir/active_release/bin" >> "$GITHUB_PATH"
 
       - name: Install Anchor CLI from reviewed source commit
         run: >-

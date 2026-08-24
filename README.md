@@ -15,7 +15,8 @@ The development program ID in `Anchor.toml` is not a deployment claim.
   state but never principal. Pausing affects new positions only.
 - `packages/protocol`: strict Solana types, launch-manifest verification, Pump
   account derivation and 75/25 fee-share rehearsal, lock instruction builders,
-  and deterministic direct/Merkle campaign artifacts.
+  deterministic direct/Merkle campaign artifacts, and generated-IDL equivalence
+  checks for the implemented lock instructions.
 - `deployments`: the public schema and tooling for `PRELAUNCH`, `BONDING_CURVE`,
   and `PUMPSWAP` manifests.
 
@@ -24,8 +25,9 @@ second liquidity pool, automatic social-reward join, or yield promise.
 
 ## Development
 
-Requirements are Node.js 24, pnpm 11.3.0, Rust 1.91.1, Anchor 0.32.1, and
-Solana CLI 3.0.10.
+Requirements are Node.js 24, pnpm 11.3.0, Rust 1.91.1, Anchor 1.1.2, Solana
+CLI 3.1.10 with SBF platform tools v1.52, and LiteSVM 0.10.0 for integration
+tests. Docker is additionally required for the pinned verifiable build.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -33,19 +35,32 @@ pnpm check
 cargo fmt --all -- --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 cargo test --locked --workspace
+pnpm rust:build-sbf
+pnpm rust:clippy:litesvm
+pnpm rust:test:litesvm
+pnpm rust:artifacts:verify
 cargo audit
 cargo deny check
-anchor build
 ```
 
 The TypeScript suite is runnable independently. Rust and SBF commands require the
 pinned local toolchain. A successful self-run is necessary but never substitutes
 for independent review of a value-holding mainnet deployment.
 
-The current lock client is hand-maintained and covered by TypeScript tests; it is
-not presented as generated from an Anchor IDL. Before deployment, generate the IDL
-from the reviewed SBF source and replace or independently verify the client byte for
-byte, including every discriminator, account order, signer/writable flag, and argument.
+`pnpm rust:build-sbf` first validates `Cargo.lock`, invokes Anchor, and then fails
+if the build changed the lockfile. This wrapper avoids an Anchor 1.1.2 forwarding
+edge case where a Cargo-only `--locked` flag is also sent to the IDL test binary.
+`pnpm rust:build:verifiable` uses the same guard and an immutable Anchor builder
+image digest. The wrapper removes an ignored development keypair only when that
+build created it; it never deletes a keypair that already existed.
+
+The current Kit-native lock client is hand-maintained rather than generated. The
+artifact verifier compares the implemented open and withdrawal instructions
+byte-for-byte with the generated Anchor IDL, including program ID, discriminators,
+PDA seeds, account order, signer/writable roles, and argument encoding. It also
+validates the complete IDL instruction/error/type surface and writes hash evidence
+under ignored `target/evidence/`; CI uploads the SBF, IDL, generated IDL type, and
+evidence for review.
 
 ## Deployment boundary
 

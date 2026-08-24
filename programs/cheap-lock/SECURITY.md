@@ -8,4 +8,13 @@
 - The vault's entire CHEAP balance is returned so an unsolicited transfer cannot prevent closure or trap principal.
 - Position records remain after withdrawal for campaign snapshot reconciliation.
 
-These properties require independent review and LiteSVM/devnet rehearsal before mainnet. The development program ID is not a deployment claim.
+The LiteSVM suite executes the compiled SBF and covers zero-amount rollback,
+position isolation, duplicate position/withdrawal rejection, wrong-owner rejection,
+pause-safe withdrawal, early and mature withdrawal, unsolicited vault tokens, and
+configured token-program mismatch.
+LiteSVM preloads configuration because its program loader does not faithfully model
+the upgradeable loader ProgramData authority checked by `initialize_config`.
+
+Initializer authority and revoked mint/freeze authority checks still require a
+localnet/devnet rehearsal. These properties also require independent review before
+mainnet. The development program ID is not a deployment claim.

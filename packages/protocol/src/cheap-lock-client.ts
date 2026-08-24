@@ -5,9 +5,9 @@ import type { InstructionAccount, UnsignedInstruction } from "./campaign.js";
 import type { LockTier, SolanaAddress } from "./types.js";
 
 /**
- * Hand-maintained predeployment client. Before any deployment, compare its
- * discriminators, account metadata, and argument bytes against the reviewed
- * Anchor IDL and reproducible SBF build; it is not generated code.
+ * Hand-maintained Kit-native predeployment client. CI compares its implemented
+ * instructions byte-for-byte with the generated Anchor IDL and reviewed SBF;
+ * it is intentionally not represented as generated code.
  */
 
 export const CHEAP_LOCK_DEVELOPMENT_PROGRAM_ID = solanaAddress("E3TBZmfvWDuV6g4bAVR62bVoV9AJ3Y6utDKJsVEgxaLu");

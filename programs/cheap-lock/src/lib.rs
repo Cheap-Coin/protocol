@@ -63,7 +63,7 @@ pub mod cheap_lock {
 
         token::transfer_checked(
             CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
+                Token::id(),
                 TransferChecked {
                     from: ctx.accounts.source_token_account.to_account_info(),
                     mint: ctx.accounts.cheap_mint.to_account_info(),
@@ -127,7 +127,7 @@ pub mod cheap_lock {
         let transfer_amount = ctx.accounts.vault.amount;
         token::transfer_checked(
             CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
+                Token::id(),
                 TransferChecked {
                     from: ctx.accounts.vault.to_account_info(),
                     mint: ctx.accounts.cheap_mint.to_account_info(),
@@ -140,7 +140,7 @@ pub mod cheap_lock {
             ctx.accounts.cheap_mint.decimals,
         )?;
         token::close_account(CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
+            Token::id(),
             CloseAccount {
                 account: ctx.accounts.vault.to_account_info(),
                 destination: ctx.accounts.owner.to_account_info(),
@@ -448,6 +448,12 @@ mod tests {
         assert_eq!(withdrawal_state(99, 100), PositionState::ExitedEarly);
         assert_eq!(withdrawal_state(100, 100), PositionState::WithdrawnMatured);
         assert_eq!(withdrawal_state(101, 100), PositionState::WithdrawnMatured);
+    }
+
+    #[test]
+    fn unlock_timestamp_fails_closed_on_overflow() {
+        assert!(unlock_timestamp(i64::MAX, LockTier::ThirtyDays).is_err());
+        assert!(unlock_timestamp(i64::MAX, LockTier::NinetyDays).is_err());
     }
 
     proptest! {

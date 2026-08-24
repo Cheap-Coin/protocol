@@ -21,6 +21,12 @@ updates:
       day: monday
       time: "09:15"
       timezone: America/New_York
+    open-pull-requests-limit: 5
+    groups:
+      anchor-framework:
+        patterns:
+          - anchor-lang
+          - anchor-spl
 
   - package-ecosystem: github-actions
     directory: /

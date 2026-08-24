@@ -41,7 +41,11 @@ jobs:
 
   cheap-lock-rust:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 60
+    env:
+      AGAVE_INSTALLER_SHA256: dfd8afbff06d8c0302e11c2fbead5464d5c773097af97c772f3df8470677e130
+      ANCHOR_SOURCE_COMMIT: 24035e2b0035c87e321acc1c05f97793829a87f1
+      SOLANA_DATA_DIR: ${{ runner.temp }}/solana
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -63,5 +67,88 @@ jobs:
       - name: Unit and property tests
         run: cargo test --locked --workspace
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.3.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.13.0
+          cache: pnpm
+
+      - name: Install locked TypeScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Kit-native protocol client
+        run: pnpm --filter @cheap/protocol build
+
+      - name: Install pinned Solana CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          installer="$RUNNER_TEMP/agave-install.sh"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            https://release.anza.xyz/v3.1.10/install --output "$installer"
+          echo "$AGAVE_INSTALLER_SHA256  $installer" | sha256sum --check --strict
+          sh "$installer" v3.1.10 --data-dir "$SOLANA_DATA_DIR" --no-modify-path
+          echo "$SOLANA_DATA_DIR/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Install Anchor CLI from reviewed source commit
+        run: >-
+          cargo install --git https://github.com/solana-foundation/anchor
+          --rev "$ANCHOR_SOURCE_COMMIT" anchor-cli --locked --force
+
+      - name: Install pinned SBF platform tools
+        run: cargo-build-sbf --install-only --tools-version v1.52
+
+      - name: Verify onchain toolchain versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(anchor --version)" = "anchor-cli 1.1.2"
+          [[ "$(solana --version)" == "solana-cli 3.1.10 "* ]]
+          test "$(rustc --version | cut -d' ' -f2)" = "1.91.1"
+          cargo-build-sbf --version | grep --fixed-strings "solana-cargo-build-sbf 3.1.10"
+          cargo-build-sbf --version | grep --fixed-strings "platform-tools v1.52"
+
+      - name: Build SBF and generated IDL without changing Cargo.lock
+        run: |
+          pnpm rust:build-sbf
+          test ! -e target/deploy/cheap_lock-keypair.json
+
+      - name: Clippy for feature-gated LiteSVM harness
+        run: pnpm rust:clippy:litesvm
+
+      - name: LiteSVM program integration tests
+        run: pnpm rust:test:litesvm
+
+      - name: Verify SBF, IDL, PDA, and TypeScript-client equivalence
+        run: pnpm rust:artifacts:verify
+
+      - name: Produce pinned verifiable build
+        run: pnpm rust:build:verifiable
+
+      - name: Verify verifiable artifact and record evidence
+        run: >-
+          node scripts/verify-cheap-lock-artifacts.mjs
+          --sbf target/verifiable/cheap_lock.so
+          --evidence target/evidence/cheap-lock-verifiable-build.json
+
       - name: Record dependency graph
         run: cargo tree --locked --workspace
+
+      - name: Upload review artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cheap-lock-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            target/deploy/cheap_lock.so
+            target/verifiable/cheap_lock.so
+            target/idl/cheap_lock.json
+            target/types/cheap_lock.ts
+            target/evidence/cheap-lock-build.json
+            target/evidence/cheap-lock-verifiable-build.json
